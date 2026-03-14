@@ -28,6 +28,10 @@ import { getChannelDisplayName } from "@/components/channels/channel-display-nam
 import { gatewayAtom } from "@/store/gateway"
 
 const DEFAULT_VISIBLE_CHANNELS = 4
+
+// 当前仅展示以下频道，其余暂时隐藏
+const VISIBLE_CHANNELS_ALLOWLIST = new Set(["dingtalk"])
+
 const CHANNEL_IMPORTANCE_ORDER = [
   "discord",
   "feishu",
@@ -184,7 +188,9 @@ export function useSidebarChannels({ t }: UseSidebarChannelsOptions) {
   }, [gateway.status, reloadChannels])
 
   const sortedChannels = React.useMemo(() => {
-    const list = [...channels]
+    const list = channels.filter((channel) =>
+      VISIBLE_CHANNELS_ALLOWLIST.has(channel.name),
+    )
     list.sort((a, b) => {
       const aEnabled = enabledMap[a.name] === true
       const bEnabled = enabledMap[b.name] === true
