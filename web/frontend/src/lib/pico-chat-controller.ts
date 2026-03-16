@@ -91,16 +91,20 @@ function handlePicoMessage(message: PicoMessage) {
             timestamp,
           },
         ],
-        // Keep isTyping=true so the indicator stays visible between steps.
-        // The backend sends typing.stop only after the final message, so we
-        // treat every message.create as an intermediate step and bump the counter.
-        // taskStartTime is preserved from the initial typing.start (or sendChatMessage).
-        isTyping: true,
-        stepCount: prev.stepCount + 1,
-        taskStartTime: prev.taskStartTime ?? Date.now(),
-        stepSummaries: summary
-          ? [...prev.stepSummaries, summary]
-          : prev.stepSummaries,
+        // Keep isTyping as-is — do NOT force it to true here.
+        // The backend sends typing.stop BEFORE the final message.create, so by
+        // the time the last message arrives isTyping may already be false.
+        // Forcing it back to true would cause the indicator to never disappear.
+        // We only bump stepCount / taskStartTime when isTyping is still true,
+        // meaning we are genuinely mid-task (not receiving the final message).
+        stepCount: prev.isTyping ? prev.stepCount + 1 : prev.stepCount,
+        taskStartTime: prev.isTyping
+          ? (prev.taskStartTime ?? Date.now())
+          : prev.taskStartTime,
+        stepSummaries:
+          prev.isTyping && summary
+            ? [...prev.stepSummaries, summary]
+            : prev.stepSummaries,
       }))
       break
     }
