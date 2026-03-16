@@ -752,6 +752,8 @@ type ToolsConfig struct {
 	Subagent        ToolConfig         `json:"subagent"                                                 envPrefix:"PICOCLAW_TOOLS_SUBAGENT_"`
 	WebFetch        ToolConfig         `json:"web_fetch"                                                envPrefix:"PICOCLAW_TOOLS_WEB_FETCH_"`
 	WriteFile       ToolConfig         `json:"write_file"                                               envPrefix:"PICOCLAW_TOOLS_WRITE_FILE_"`
+	OpenBrowser     ToolConfig         `json:"open_browser"                                             envPrefix:"PICOCLAW_TOOLS_OPEN_BROWSER_"`
+	BrowserUse      ToolConfig         `json:"browser_use"                                              envPrefix:"PICOCLAW_TOOLS_BROWSER_USE_"`
 }
 
 type SearchCacheConfig struct {
@@ -1055,6 +1057,10 @@ func (t *ToolsConfig) IsToolEnabled(name string) bool {
 		return t.WriteFile.Enabled
 	case "mcp":
 		return t.MCP.Enabled
+	case "open_browser":
+		return t.OpenBrowser.Enabled
+	case "browser_use":
+		return t.BrowserUse.Enabled
 	default:
 		return true
 	}

@@ -524,6 +524,12 @@ func DefaultConfig() *Config {
 			WriteFile: ToolConfig{
 				Enabled: true,
 			},
+			OpenBrowser: ToolConfig{
+				Enabled: true,
+			},
+			BrowserUse: ToolConfig{
+				Enabled: true,
+			},
 		},
 		Heartbeat: HeartbeatConfig{
 			Enabled:  true,

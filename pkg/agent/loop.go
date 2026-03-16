@@ -1334,8 +1334,13 @@ func (al *AgentLoop) runLLMIteration(
 
 		// Process results in original order (send to user, save to session)
 		for _, r := range agentResults {
-			// Send ForUser content to user immediately if not Silent
-			if !r.result.Silent && r.result.ForUser != "" && opts.SendResponse {
+			// Send ForUser content to user immediately if not Silent.
+			// ForUser is real-time feedback that should always be sent regardless of
+			// opts.SendResponse — the latter only controls the final LLM response.
+			// We skip internal/empty channels to avoid leaking to heartbeat contexts.
+			if !r.result.Silent && r.result.ForUser != "" &&
+				opts.Channel != "" && opts.ChatID != "" &&
+				!constants.IsInternalChannel(opts.Channel) {
 				al.bus.PublishOutbound(ctx, bus.OutboundMessage{
 					Channel: opts.Channel,
 					ChatID:  opts.ChatID,

@@ -131,6 +131,18 @@ var toolCatalog = []toolCatalogEntry{
 		ConfigKey:   "spi",
 	},
 	{
+		Name:        "open_browser",
+		Description: "Open a URL in the system's default web browser.",
+		Category:    "system",
+		ConfigKey:   "open_browser",
+	},
+	{
+		Name:        "browser_use",
+		Description: "Automate a real Chromium browser via Playwright: navigate, search, click, type, screenshot.",
+		Category:    "system",
+		ConfigKey:   "browser_use",
+	},
+	{
 		Name:        "tool_search_tool_regex",
 		Description: "Discover hidden MCP tools by regex search when tool discovery is enabled.",
 		Category:    "discovery",

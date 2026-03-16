@@ -160,19 +160,39 @@ func (t *InstallSkillTool) Execute(ctx context.Context, args map[string]any) *To
 	}
 
 	// Build result with moderation warning if suspicious.
-	var output string
+	var llmOutput string
 	if result.IsSuspicious {
-		output = fmt.Sprintf("⚠️ Warning: skill %q is flagged as suspicious (may contain risky patterns).\n\n", slug)
+		llmOutput = fmt.Sprintf("⚠️ Warning: skill %q is flagged as suspicious (may contain risky patterns).\n\n", slug)
 	}
-	output += fmt.Sprintf("Successfully installed skill %q v%s from %s registry.\nLocation: %s\n",
+	llmOutput += fmt.Sprintf("Successfully installed skill %q v%s from %s registry.\nLocation: %s\n",
 		slug, result.Version, registry.Name(), targetDir)
 
 	if result.Summary != "" {
-		output += fmt.Sprintf("Description: %s\n", result.Summary)
+		llmOutput += fmt.Sprintf("Description: %s\n", result.Summary)
 	}
-	output += "\nThe skill is now available and can be loaded in the current session."
+	llmOutput += "\nThe skill is now available and can be loaded in the current session."
 
-	return SilentResult(output)
+	// Build user-facing message with full details.
+	var userOutput string
+	if result.IsSuspicious {
+		userOutput = fmt.Sprintf("⚠️ **警告**：skill %q 被标记为可疑（可能包含风险代码）。\n\n", slug)
+	}
+	userOutput += fmt.Sprintf("✅ **Skill 安装成功**\n\n"+
+		"- **名称**：%s\n"+
+		"- **版本**：%s\n"+
+		"- **来源**：%s registry\n"+
+		"- **安装路径**：`%s`\n",
+		slug, result.Version, registry.Name(), targetDir)
+	if result.Summary != "" {
+		userOutput += fmt.Sprintf("- **描述**：%s\n", result.Summary)
+	}
+	userOutput += "\nSkill 已安装完成，可在当前会话中使用。"
+
+	return &ToolResult{
+		ForLLM:  llmOutput,
+		ForUser: userOutput,
+		IsError: false,
+	}
 }
 
 // originMeta tracks which registry a skill was installed from.

@@ -95,6 +95,12 @@ func NewAgentInstance(
 	if cfg.Tools.IsToolEnabled("append_file") {
 		toolsRegistry.Register(tools.NewAppendFileTool(workspace, restrict, allowWritePaths))
 	}
+	if cfg.Tools.IsToolEnabled("open_browser") {
+		toolsRegistry.Register(tools.NewOpenBrowserTool())
+	}
+	if cfg.Tools.IsToolEnabled("browser_use") {
+		toolsRegistry.Register(tools.NewBrowserUseTool())
+	}
 
 	sessionsDir := filepath.Join(workspace, "sessions")
 	sessions := initSessionStore(sessionsDir)
