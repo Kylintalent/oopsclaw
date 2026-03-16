@@ -27,11 +27,13 @@
       "step4": "马上就好..."
     },
     "running": {
-      "inProgress": "仍在执行中...",
+      "inProgress": "执行中...",
       "stepsCompleted": "已完成 {{count}} 步",
+      "stepCurrent": "正在执行第 {{current}} 步",
+      "stepsFinished": "全部 {{count}} 步已完成",
       "elapsed": "已用时 {{seconds}} 秒",
       "nextStep": "正在执行下一步...",
-      "completed": "任务已完成"
+      "completed": "任务已完成 ✓"
     },
     "history": "历史记录",
     "noHistory": "暂无对话历史",

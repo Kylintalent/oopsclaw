@@ -27,11 +27,13 @@
       "step4": "Almost there..."
     },
     "running": {
-      "inProgress": "Still running...",
+      "inProgress": "Executing...",
       "stepsCompleted": "{{count}} step(s) completed",
+      "stepCurrent": "Step {{current}} in progress",
+      "stepsFinished": "All {{count}} step(s) done",
       "elapsed": "{{seconds}}s elapsed",
       "nextStep": "Working on next step...",
-      "completed": "Task completed"
+      "completed": "Task completed ✓"
     },
     "history": "History",
     "noHistory": "No chat history yet",

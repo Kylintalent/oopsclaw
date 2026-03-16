@@ -56,24 +56,67 @@ function scheduleTypingClear() {
   }, TYPING_LINGER_MS)
 }
 
-// Extract a concise one-line summary from a message for the TypingIndicator.
-// Strips markdown headings/bullets, takes the first meaningful line, and
-// truncates to 80 characters so it fits in the progress panel.
+// Extract a rich multi-line summary from a message for the TypingIndicator.
+// Collects the first meaningful line as a title, plus any URLs and key details
+// found in the message body. Returns a structured summary string.
 function extractStepSummary(content: string): string {
   const lines = content.split("\n")
+  const summaryParts: string[] = []
+  const urls: string[] = []
+
+  // Regex to find URLs (http/https)
+  const urlPattern = /https?:\/\/[^\s)>\]]+/g
+
   for (const rawLine of lines) {
+    // Extract URLs from the raw line before stripping markdown
+    const foundUrls = rawLine.match(urlPattern)
+    if (foundUrls) {
+      for (const url of foundUrls) {
+        if (!urls.includes(url)) {
+          urls.push(url)
+        }
+      }
+    }
+
     // Strip leading markdown syntax: headings (#), bullets (- * +), bold (**), backticks
     const cleaned = rawLine
       .replace(/^#+\s*/, "")
       .replace(/^[-*+]\s+/, "")
+      .replace(/^\d+\.\s+/, "")
       .replace(/\*\*/g, "")
       .replace(/`/g, "")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // [text](url) → text
       .trim()
-    if (cleaned.length > 0) {
-      return cleaned.length > 80 ? cleaned.slice(0, 79) + "…" : cleaned
+
+    if (cleaned.length > 0 && summaryParts.length < 3) {
+      summaryParts.push(cleaned)
     }
   }
-  return ""
+
+  // Build the final summary: title + details + URLs
+  const parts: string[] = []
+
+  if (summaryParts.length > 0) {
+    // First line is the title, truncate if needed
+    const title = summaryParts[0]
+    parts.push(title.length > 120 ? title.slice(0, 119) + "…" : title)
+  }
+
+  // Add extra detail lines (2nd and 3rd meaningful lines)
+  for (let i = 1; i < summaryParts.length; i++) {
+    const detail = summaryParts[i]
+    parts.push(detail.length > 100 ? detail.slice(0, 99) + "…" : detail)
+  }
+
+  // Append discovered URLs (max 2)
+  for (const url of urls.slice(0, 2)) {
+    const truncatedUrl = url.length > 80 ? url.slice(0, 79) + "…" : url
+    if (!parts.some((p) => p.includes(truncatedUrl.replace("…", "")))) {
+      parts.push("🔗 " + truncatedUrl)
+    }
+  }
+
+  return parts.join("\n")
 }
 
 async function loadSessionMessages(sessionId: string): Promise<ChatMessage[]> {

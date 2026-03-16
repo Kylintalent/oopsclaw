@@ -1,8 +1,15 @@
 import { useAtomValue } from "jotai"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { chatAtom } from "@/store/chat"
+
+function formatElapsed(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  return `${minutes}m ${remainingSeconds}s`
+}
 
 export function TypingIndicator() {
   const { t } = useTranslation()
@@ -10,16 +17,16 @@ export function TypingIndicator() {
     useAtomValue(chatAtom)
 
   // Elapsed seconds since the task started, updated every second.
-  // Freezes when taskDone becomes true so the final time is preserved.
+  // When taskDone becomes true we freeze the displayed value.
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
-  const frozenElapsed = useRef(0)
+  const [frozenElapsed, setFrozenElapsed] = useState(0)
 
   useEffect(() => {
     if (taskDone) {
-      // Freeze the elapsed time at the moment the task finished.
-      frozenElapsed.current = elapsedSeconds
+      setFrozenElapsed((prev) => (prev === 0 ? elapsedSeconds : prev))
       return
     }
+    setFrozenElapsed(0)
     if (!taskStartTime) {
       setElapsedSeconds(0)
       return
@@ -32,8 +39,11 @@ export function TypingIndicator() {
     return () => clearInterval(timer)
   }, [taskStartTime, taskDone])
 
-  const displayedElapsed = taskDone ? frozenElapsed.current : elapsedSeconds
+  const displayedElapsed = taskDone ? frozenElapsed : elapsedSeconds
   const isMultiStep = stepCount > 0
+
+  // Status label and colors
+  const statusColor = taskDone ? "emerald" : "violet"
 
   return (
     <div className="flex w-full flex-col gap-1.5">
@@ -41,75 +51,121 @@ export function TypingIndicator() {
         <span>OopsClaw</span>
       </div>
 
-      <div className="bg-card inline-flex w-fit max-w-md flex-col gap-3 rounded-xl border px-5 py-4">
-        {/* Status header */}
-        <div className="flex items-center gap-2">
-          {taskDone ? (
-            <>
-              <span className="size-2 rounded-full bg-emerald-500" />
-              <span className="ml-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                {t("chat.running.completed")}
-              </span>
-            </>
-          ) : (
-            <>
-              <span className="size-2 animate-bounce rounded-full bg-violet-400/70 [animation-delay:-0.3s]" />
-              <span className="size-2 animate-bounce rounded-full bg-violet-400/70 [animation-delay:-0.15s]" />
-              <span className="size-2 animate-bounce rounded-full bg-violet-400/70" />
-              {isMultiStep ? (
-                <span className="ml-1 text-xs font-medium text-violet-500">
-                  {t("chat.running.inProgress")}
+      <div className="bg-card inline-flex w-fit max-w-lg flex-col gap-3 rounded-xl border px-5 py-4">
+        {/* Status header with step counter */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            {taskDone ? (
+              <>
+                <span className="size-2.5 rounded-full bg-emerald-500" />
+                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                  {t("chat.running.completed")}
                 </span>
-              ) : (
-                <span className="text-muted-foreground ml-1 text-xs">
-                  {t("chat.thinking.step1")}
+              </>
+            ) : (
+              <>
+                <span className="size-2 animate-bounce rounded-full bg-violet-400/70 [animation-delay:-0.3s]" />
+                <span className="size-2 animate-bounce rounded-full bg-violet-400/70 [animation-delay:-0.15s]" />
+                <span className="size-2 animate-bounce rounded-full bg-violet-400/70" />
+                <span className="ml-1 text-xs font-semibold text-violet-500">
+                  {isMultiStep
+                    ? t("chat.running.inProgress")
+                    : t("chat.thinking.step1")}
                 </span>
-              )}
-            </>
+              </>
+            )}
+          </div>
+
+          {/* Elapsed time badge */}
+          {(isMultiStep || taskDone) && (
+            <span className="text-muted-foreground whitespace-nowrap text-[11px] tabular-nums">
+              ⏱ {formatElapsed(displayedElapsed)}
+            </span>
           )}
         </div>
 
-        {/* Progress bar — animated when running, solid when done */}
-        {taskDone ? (
-          <div className="h-1 w-full rounded-full bg-emerald-500/40" />
-        ) : (
-          <div className="bg-muted relative h-1 w-full overflow-hidden rounded-full">
+        {/* Step progress bar */}
+        {isMultiStep && (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between text-[11px]">
+              <span
+                className={`font-semibold ${
+                  taskDone
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-violet-600 dark:text-violet-400"
+                }`}
+              >
+                {taskDone
+                  ? t("chat.running.stepsFinished", { count: stepCount })
+                  : t("chat.running.stepCurrent", { current: stepCount })}
+              </span>
+            </div>
+            {taskDone ? (
+              <div className="h-1.5 w-full rounded-full bg-emerald-500/50" />
+            ) : (
+              <div className="bg-muted relative h-1.5 w-full overflow-hidden rounded-full">
+                <div className="absolute inset-0 animate-[shimmer_2s_infinite] rounded-full bg-gradient-to-r from-violet-500/60 via-violet-400/80 to-violet-500/60 bg-[length:200%_100%]" />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* No steps yet — simple progress bar */}
+        {!isMultiStep && !taskDone && (
+          <div className="bg-muted relative h-1.5 w-full overflow-hidden rounded-full">
             <div className="absolute inset-0 animate-[shimmer_2s_infinite] rounded-full bg-gradient-to-r from-violet-500/60 via-violet-400/80 to-violet-500/60 bg-[length:200%_100%]" />
           </div>
         )}
 
-        {/* Step counter + elapsed time */}
-        {isMultiStep && (
-          <div className="flex items-center gap-3 text-xs">
-            <span
-              className={`rounded-md px-2 py-0.5 font-semibold ${
-                taskDone
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                  : "bg-violet-500/10 text-violet-600 dark:text-violet-400"
-              }`}
-            >
-              {t("chat.running.stepsCompleted", { count: stepCount })}
-            </span>
-            <span className="text-muted-foreground">
-              {t("chat.running.elapsed", { seconds: displayedElapsed })}
-            </span>
-          </div>
-        )}
-
-        {/* Step summaries — scrollable list of completed steps */}
+        {/* Step summaries — scrollable list with step numbers */}
         {stepSummaries.length > 0 && (
-          <div className="border-border/50 flex max-h-48 flex-col gap-1 overflow-y-auto border-t pt-2">
-            {stepSummaries.map((summary, index) => (
-              <div key={index} className="flex items-start gap-2 text-xs">
-                <span className="mt-0.5 shrink-0 text-emerald-500">✓</span>
-                <span className="text-foreground/80 leading-snug">{summary}</span>
-              </div>
-            ))}
+          <div className="border-border/50 flex max-h-64 flex-col gap-2 overflow-y-auto border-t pt-2">
+            {stepSummaries.map((summary, index) => {
+              const summaryLines = summary.split("\n")
+              const title = summaryLines[0] || ""
+              const details = summaryLines.slice(1)
+
+              return (
+                <div key={index} className="flex items-start gap-2 text-xs">
+                  {/* Step number badge */}
+                  <span
+                    className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ${
+                      taskDone || index < stepSummaries.length - 1
+                        ? `bg-${statusColor}-500`
+                        : "animate-pulse bg-violet-400"
+                    }`}
+                    style={{
+                      backgroundColor:
+                        taskDone || index < stepSummaries.length - 1
+                          ? "rgb(16 185 129)"
+                          : "rgb(167 139 250)",
+                    }}
+                  >
+                    {index + 1}
+                  </span>
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <span className="text-foreground/90 font-medium leading-snug">
+                      {title}
+                    </span>
+                    {details.map((detail, detailIndex) => (
+                      <span
+                        key={detailIndex}
+                        className="text-muted-foreground break-all leading-snug"
+                      >
+                        {detail}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
             {/* Show "next step" only while still running */}
             {!taskDone && (
               <div className="flex items-start gap-2 text-xs">
-                <span className="mt-0.5 shrink-0 animate-pulse text-violet-400">›</span>
-                <span className="text-muted-foreground italic leading-snug">
+                <span className="mt-0.5 flex size-5 shrink-0 animate-pulse items-center justify-center rounded-full bg-violet-300/50 text-[10px] font-bold text-violet-500">
+                  {stepSummaries.length + 1}
+                </span>
+                <span className="text-muted-foreground mt-0.5 italic leading-snug">
                   {t("chat.running.nextStep")}
                 </span>
               </div>
