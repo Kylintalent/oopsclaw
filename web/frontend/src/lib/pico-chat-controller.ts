@@ -36,7 +36,7 @@ let connectionGeneration = 0
 // We keep isTyping=true for a short window so the indicator stays visible.
 // If typing.start arrives within that window (next step starting) we cancel
 // the timer and stay in typing mode. If nothing arrives the task is done.
-const TYPING_LINGER_MS = 800
+const TYPING_LINGER_MS = 5000
 let typingLingerTimer: ReturnType<typeof setTimeout> | null = null
 
 function clearTypingLinger() {
@@ -199,11 +199,15 @@ function handlePicoMessage(message: PicoMessage) {
       break
 
     case "typing.stop":
-      // typing.stop always arrives BEFORE the corresponding message.create.
-      // Do NOT clear isTyping here — the linger timer set by message.create
-      // will handle the final cleanup after the message has been rendered.
-      // Just cancel any existing linger so we don't double-fire.
-      clearTypingLinger()
+      // typing.stop arrives BEFORE the corresponding message.create.
+      // If we already have steps recorded, start a linger timer so that
+      // if no message.create follows (edge case), we still mark done.
+      // message.create will reset the timer when it arrives.
+      if (getChatState().stepCount > 0) {
+        scheduleTypingClear()
+      } else {
+        clearTypingLinger()
+      }
       break
 
     case "error":

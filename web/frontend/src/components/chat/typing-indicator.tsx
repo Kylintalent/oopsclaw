@@ -16,30 +16,35 @@ export function TypingIndicator() {
   const { taskDone, stepCount, taskStartTime, stepSummaries } =
     useAtomValue(chatAtom)
 
-  // Elapsed seconds since the task started, updated every second.
-  // When taskDone becomes true we freeze the displayed value.
+  // Live elapsed seconds, ticking every second while the task runs.
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
-  const [frozenElapsed, setFrozenElapsed] = useState(0)
+  // Snapshot of elapsed time captured when taskDone transitions to true.
+  const [doneElapsed, setDoneElapsed] = useState(0)
 
+  // Tick the elapsed counter while the task is running.
   useEffect(() => {
-    if (taskDone) {
-      setFrozenElapsed((prev) => (prev === 0 ? elapsedSeconds : prev))
-      return
-    }
-    setFrozenElapsed(0)
-    if (!taskStartTime) {
-      setElapsedSeconds(0)
+    if (!taskStartTime || taskDone) {
       return
     }
     setElapsedSeconds(Math.floor((Date.now() - taskStartTime) / 1000))
-
     const timer = setInterval(() => {
       setElapsedSeconds(Math.floor((Date.now() - taskStartTime) / 1000))
     }, 1000)
     return () => clearInterval(timer)
   }, [taskStartTime, taskDone])
 
-  const displayedElapsed = taskDone ? frozenElapsed : elapsedSeconds
+  // Freeze the elapsed time when the task finishes.
+  useEffect(() => {
+    if (taskDone && taskStartTime) {
+      setDoneElapsed(Math.floor((Date.now() - taskStartTime) / 1000))
+    }
+    if (!taskDone) {
+      setDoneElapsed(0)
+      setElapsedSeconds(0)
+    }
+  }, [taskDone, taskStartTime])
+
+  const displayedElapsed = taskDone ? doneElapsed : elapsedSeconds
   const isMultiStep = stepCount > 0
 
   // Status label and colors
