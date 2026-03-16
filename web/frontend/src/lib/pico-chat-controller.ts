@@ -67,10 +67,13 @@ function handlePicoMessage(message: PicoMessage) {
             timestamp,
           },
         ],
-        // Do NOT reset isTyping here — the agent may still be running more steps.
-        // isTyping is only cleared by typing.stop or on disconnect/error.
-        // Increment stepCount so TypingIndicator can show progress.
-        stepCount: prev.isTyping ? prev.stepCount + 1 : prev.stepCount,
+        // Keep isTyping=true so the indicator stays visible between steps.
+        // The backend sends typing.stop only after the final message, so we
+        // treat every message.create as an intermediate step and bump the counter.
+        // taskStartTime is preserved from the initial typing.start (or sendChatMessage).
+        isTyping: true,
+        stepCount: prev.stepCount + 1,
+        taskStartTime: prev.taskStartTime ?? Date.now(),
       }))
       break
     }
