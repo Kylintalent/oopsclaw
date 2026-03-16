@@ -67,7 +67,10 @@ function handlePicoMessage(message: PicoMessage) {
             timestamp,
           },
         ],
-        isTyping: false,
+        // Do NOT reset isTyping here — the agent may still be running more steps.
+        // isTyping is only cleared by typing.stop or on disconnect/error.
+        // Increment stepCount so TypingIndicator can show progress.
+        stepCount: prev.isTyping ? prev.stepCount + 1 : prev.stepCount,
       }))
       break
     }
@@ -88,11 +91,11 @@ function handlePicoMessage(message: PicoMessage) {
     }
 
     case "typing.start":
-      updateChatStore({ isTyping: true })
+      updateChatStore({ isTyping: true, stepCount: 0, taskStartTime: Date.now() })
       break
 
     case "typing.stop":
-      updateChatStore({ isTyping: false })
+      updateChatStore({ isTyping: false, stepCount: 0, taskStartTime: null })
       break
 
     case "error":
@@ -317,6 +320,8 @@ export function sendChatMessage(content: string) {
       { id, role: "user", content, timestamp: Date.now() },
     ],
     isTyping: true,
+    stepCount: 0,
+    taskStartTime: Date.now(),
   }))
 
   wsRef.send(

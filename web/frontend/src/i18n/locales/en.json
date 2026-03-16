@@ -26,6 +26,11 @@
       "step3": "Preparing response...",
       "step4": "Almost there..."
     },
+    "running": {
+      "inProgress": "Still running...",
+      "stepsCompleted": "{{count}} step(s) completed",
+      "elapsed": "{{seconds}}s elapsed"
+    },
     "history": "History",
     "noHistory": "No chat history yet",
     "historyLoadFailed": "Failed to load chat history",
