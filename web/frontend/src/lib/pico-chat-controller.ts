@@ -32,6 +32,28 @@ let unsubscribeGateway: (() => void) | null = null
 let hydratePromise: Promise<void> | null = null
 let connectionGeneration = 0
 
+// After each message.create the backend may still be running more steps.
+// We keep isTyping=true for a short window so the indicator stays visible.
+// If typing.start arrives within that window (next step starting) we cancel
+// the timer and stay in typing mode. If nothing arrives the task is done.
+const TYPING_LINGER_MS = 800
+let typingLingerTimer: ReturnType<typeof setTimeout> | null = null
+
+function clearTypingLinger() {
+  if (typingLingerTimer !== null) {
+    clearTimeout(typingLingerTimer)
+    typingLingerTimer = null
+  }
+}
+
+function scheduleTypingClear() {
+  clearTypingLinger()
+  typingLingerTimer = setTimeout(() => {
+    typingLingerTimer = null
+    updateChatStore({ isTyping: false, stepCount: 0, taskStartTime: null })
+  }, TYPING_LINGER_MS)
+}
+
 // Extract a concise one-line summary from a message for the TypingIndicator.
 // Strips markdown headings/bullets, takes the first meaningful line, and
 // truncates to 80 characters so it fits in the progress panel.
@@ -81,6 +103,14 @@ function handlePicoMessage(message: PicoMessage) {
       // Take the first non-empty line and truncate to 80 characters.
       const summary = extractStepSummary(content)
 
+      // The backend always sends typing.stop BEFORE message.create, so
+      // isTyping is already false when we get here. We re-enable it and
+      // schedule a short linger window. If the next step's typing.start
+      // arrives within TYPING_LINGER_MS the timer is cancelled and the
+      // indicator stays visible. If nothing arrives the task is done and
+      // the timer fires to clear the indicator.
+      scheduleTypingClear()
+
       updateChatStore((prev) => ({
         messages: [
           ...prev.messages,
@@ -91,20 +121,12 @@ function handlePicoMessage(message: PicoMessage) {
             timestamp,
           },
         ],
-        // Keep isTyping as-is — do NOT force it to true here.
-        // The backend sends typing.stop BEFORE the final message.create, so by
-        // the time the last message arrives isTyping may already be false.
-        // Forcing it back to true would cause the indicator to never disappear.
-        // We only bump stepCount / taskStartTime when isTyping is still true,
-        // meaning we are genuinely mid-task (not receiving the final message).
-        stepCount: prev.isTyping ? prev.stepCount + 1 : prev.stepCount,
-        taskStartTime: prev.isTyping
-          ? (prev.taskStartTime ?? Date.now())
-          : prev.taskStartTime,
-        stepSummaries:
-          prev.isTyping && summary
-            ? [...prev.stepSummaries, summary]
-            : prev.stepSummaries,
+        isTyping: true,
+        stepCount: prev.stepCount + 1,
+        taskStartTime: prev.taskStartTime ?? Date.now(),
+        stepSummaries: summary
+          ? [...prev.stepSummaries, summary]
+          : prev.stepSummaries,
       }))
       break
     }
@@ -125,16 +147,24 @@ function handlePicoMessage(message: PicoMessage) {
     }
 
     case "typing.start":
+      // Cancel any pending linger timer — the next step is starting.
+      clearTypingLinger()
+      // Reset everything including summaries when a new task begins.
       updateChatStore({ isTyping: true, stepCount: 0, taskStartTime: Date.now(), stepSummaries: [] })
       break
 
     case "typing.stop":
-      updateChatStore({ isTyping: false, stepCount: 0, taskStartTime: null, stepSummaries: [] })
+      // typing.stop always arrives BEFORE the corresponding message.create.
+      // Do NOT clear isTyping here — the linger timer set by message.create
+      // will handle the final cleanup after the message has been rendered.
+      // Just cancel any existing linger so we don't double-fire.
+      clearTypingLinger()
       break
 
     case "error":
       console.error("Pico error:", payload)
-      updateChatStore({ isTyping: false })
+      clearTypingLinger()
+      updateChatStore({ isTyping: false, stepCount: 0, taskStartTime: null })
       break
 
     case "pong":
@@ -269,9 +299,12 @@ export function disconnectChat() {
     socket.close()
   }
 
+  clearTypingLinger()
   updateChatStore({
     connectionState: "disconnected",
     isTyping: false,
+    stepCount: 0,
+    taskStartTime: null,
   })
 }
 
