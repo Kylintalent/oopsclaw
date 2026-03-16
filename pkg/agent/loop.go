@@ -1333,7 +1333,20 @@ func (al *AgentLoop) runLLMIteration(
 		wg.Wait()
 
 		// Process results in original order (send to user, save to session)
+		// Track if any tool requested to stop the agent iteration.
+		shouldStop := false
 		for _, r := range agentResults {
+			// Check if this tool requested to stop on error.
+			if r.result.StopOnError {
+				shouldStop = true
+				logger.InfoCF("agent", "Tool requested stop on error",
+					map[string]any{
+						"tool":      r.tc.Name,
+						"agent_id":  agent.ID,
+						"iteration": iteration,
+					})
+			}
+
 			// Send ForUser content to user immediately if not Silent.
 			// ForUser is real-time feedback that should always be sent regardless of
 			// opts.SendResponse — the latter only controls the final LLM response.
@@ -1389,6 +1402,17 @@ func (al *AgentLoop) runLLMIteration(
 
 			// Save tool result message to session
 			agent.Sessions.AddFullMessage(opts.SessionKey, toolResultMsg)
+		}
+
+		// If any tool requested stop on error, break the iteration loop.
+		if shouldStop {
+			logger.InfoCF("agent", "Stopping agent iteration due to fatal error",
+				map[string]any{
+					"agent_id":  agent.ID,
+					"iteration": iteration,
+				})
+			finalContent = "Task stopped due to a fatal error. Please check the error message and try again with corrected parameters."
+			break
 		}
 
 		// Tick down TTL of discovered tools after processing tool results.

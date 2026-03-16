@@ -271,25 +271,24 @@ func (t *BrowserUseTool) Execute(ctx context.Context, args map[string]any) *Tool
 	}
 
 	if !result.Success {
-		return &ToolResult{
-			ForLLM: fmt.Sprintf("Browser action %q failed: %s", action, result.Error),
-			ForUser: fmt.Sprintf(
-				"## 🤖 浏览器自动化执行过程\n\n"+
-					"### 📋 任务\n%s\n\n"+
-					"### 📁 脚本路径\n```\n%s\n```\n\n"+
-					"### 📥 传入参数\n```json\n%s\n```\n\n"+
-					"### ⚙️ 执行命令\n```bash\n%s\n```\n\n"+
-					"### 📤 执行日志\n```\n%s\n```\n\n"+
-					"### ❌ 结果\n%s",
-				stepDescription,
-				t.scriptPath,
-				actionJSON,
-				displayCommand,
-				stderrOutput,
-				result.Error,
-			),
-			IsError: true,
-		}
+		// Browser navigation failures are often due to wrong URLs or page issues.
+		// Stop the agent from continuing to try more URLs.
+		return FatalErrorResult(fmt.Sprintf(
+			"## 🤖 浏览器自动化执行过程\n\n"+
+				"### 📋 任务\n%s\n\n"+
+				"### 📁 脚本路径\n```\n%s\n```\n\n"+
+				"### 📥 传入参数\n```json\n%s\n```\n\n"+
+				"### ⚙️ 执行命令\n```bash\n%s\n```\n\n"+
+				"### 📤 执行日志\n```\n%s\n```\n\n"+
+				"### ❌ 结果\n%s\n\n"+
+				"**任务已停止**：浏览器操作失败，不再继续尝试其他操作。",
+			stepDescription,
+			t.scriptPath,
+			actionJSON,
+			displayCommand,
+			stderrOutput,
+			result.Error,
+		))
 	}
 
 	// close_browser returns a simple message, not page content.

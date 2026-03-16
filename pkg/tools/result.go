@@ -23,6 +23,11 @@ type ToolResult struct {
 	// When true, the result should be treated as an error.
 	IsError bool `json:"is_error"`
 
+	// StopOnError indicates that the agent should stop iterating when this
+	// error occurs. Used for fatal errors where continuing would be harmful
+	// or wasteful (e.g., browser navigation to wrong URLs).
+	StopOnError bool `json:"stop_on_error"`
+
 	// Async indicates whether the tool is running asynchronously.
 	// When true, the tool will complete later and notify via callback.
 	Async bool `json:"async"`
@@ -100,6 +105,24 @@ func ErrorResult(message string) *ToolResult {
 		Silent:  false,
 		IsError: true,
 		Async:   false,
+	}
+}
+
+// FatalErrorResult creates a ToolResult representing a fatal error that
+// should stop the agent from continuing. Used when an error indicates
+// the task cannot proceed (e.g., wrong URL, authentication failure).
+//
+// Example:
+//
+//	result := FatalErrorResult("Cannot navigate to invalid URL")
+func FatalErrorResult(message string) *ToolResult {
+	return &ToolResult{
+		ForLLM:      message,
+		ForUser:     message,
+		Silent:      false,
+		IsError:     true,
+		StopOnError: true,
+		Async:       false,
 	}
 }
 
