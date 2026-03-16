@@ -32,28 +32,39 @@ let unsubscribeGateway: (() => void) | null = null
 let hydratePromise: Promise<void> | null = null
 let connectionGeneration = 0
 
-// After each message.create the backend may still be running more steps.
-// We keep isTyping=true for a short window so the indicator stays visible.
-// If typing.start arrives within that window (next step starting) we cancel
-// the timer and stay in typing mode. If nothing arrives the task is done.
-const TYPING_LINGER_MS = 5000
-let typingLingerTimer: ReturnType<typeof setTimeout> | null = null
+// --- Typing state machine ---
+// The backend sends messages in this order for each step:
+//   typing.start → [agent runs] → typing.stop → message.create
+// If another step follows, a new typing.start arrives shortly after message.create.
+// If no typing.start arrives after message.create, the task is done.
+//
+// We track a "pending done" timer that fires after message.create. If typing.start
+// arrives before the timer fires, we cancel it (task continues). Otherwise the
+// timer marks the task as done.
+//
+// We also track whether we are in a "typing started" state (between typing.start
+// and the final completion). This is separate from the linger timer.
+let pendingDoneTimer: ReturnType<typeof setTimeout> | null = null
 
-function clearTypingLinger() {
-  if (typingLingerTimer !== null) {
-    clearTimeout(typingLingerTimer)
-    typingLingerTimer = null
+// How long to wait after message.create for a typing.start before declaring done.
+// The backend sends typing.start almost immediately after message.create in the
+// same agent loop, so 2 seconds is very generous.
+const PENDING_DONE_MS = 2000
+
+function clearPendingDone() {
+  if (pendingDoneTimer !== null) {
+    clearTimeout(pendingDoneTimer)
+    pendingDoneTimer = null
   }
 }
 
-function scheduleTypingClear() {
-  clearTypingLinger()
-  typingLingerTimer = setTimeout(() => {
-    typingLingerTimer = null
-    // Don't clear stepCount/stepSummaries — keep them visible.
-    // Switch to "done" mode so the indicator shows a completion state.
+function schedulePendingDone() {
+  clearPendingDone()
+  pendingDoneTimer = setTimeout(() => {
+    pendingDoneTimer = null
+    // No typing.start arrived → task is truly done.
     updateChatStore({ isTyping: false, taskDone: true })
-  }, TYPING_LINGER_MS)
+  }, PENDING_DONE_MS)
 }
 
 // Extract a rich multi-line summary from a message for the TypingIndicator.
@@ -148,13 +159,12 @@ function handlePicoMessage(message: PicoMessage) {
       // Take the first non-empty line and truncate to 80 characters.
       const summary = extractStepSummary(content)
 
-      // The backend always sends typing.stop BEFORE message.create, so
-      // isTyping is already false when we get here. We re-enable it and
-      // schedule a short linger window. If the next step's typing.start
-      // arrives within TYPING_LINGER_MS the timer is cancelled and the
-      // indicator stays visible. If nothing arrives the task is done and
-      // the timer fires to clear the indicator.
-      scheduleTypingClear()
+      // The backend always sends typing.stop BEFORE message.create.
+      // After receiving the message, we schedule a "pending done" timer.
+      // If typing.start arrives before the timer fires (next step starting),
+      // we cancel it and stay in typing mode. If nothing arrives, the task
+      // is truly done and the timer marks it complete.
+      schedulePendingDone()
 
       updateChatStore((prev) => ({
         messages: [
@@ -191,28 +201,29 @@ function handlePicoMessage(message: PicoMessage) {
       break
     }
 
-    case "typing.start":
-      // Cancel any pending linger timer — the next step is starting.
-      clearTypingLinger()
-      // Reset everything including summaries when a new task begins.
-      updateChatStore({ isTyping: true, taskDone: false, stepCount: 0, taskStartTime: Date.now(), stepSummaries: [] })
+    case "typing.start": {
+      // Cancel any pending done timer — the next step is starting.
+      clearPendingDone()
+      const state = getChatState()
+      if (state.stepCount === 0 || state.taskDone) {
+        // Brand new task — reset everything.
+        updateChatStore({ isTyping: true, taskDone: false, stepCount: 0, taskStartTime: Date.now(), stepSummaries: [] })
+      } else {
+        // Continuation of an existing multi-step task — just ensure isTyping is true.
+        updateChatStore({ isTyping: true, taskDone: false })
+      }
       break
+    }
 
     case "typing.stop":
       // typing.stop arrives BEFORE the corresponding message.create.
-      // If we already have steps recorded, start a linger timer so that
-      // if no message.create follows (edge case), we still mark done.
-      // message.create will reset the timer when it arrives.
-      if (getChatState().stepCount > 0) {
-        scheduleTypingClear()
-      } else {
-        clearTypingLinger()
-      }
+      // Don't change any state here — message.create will handle the
+      // transition and schedule the pending done timer.
       break
 
     case "error":
       console.error("Pico error:", payload)
-      clearTypingLinger()
+      clearPendingDone()
       updateChatStore({ isTyping: false, taskDone: false, stepCount: 0, taskStartTime: null, stepSummaries: [] })
       break
 
@@ -348,7 +359,7 @@ export function disconnectChat() {
     socket.close()
   }
 
-  clearTypingLinger()
+  clearPendingDone()
   updateChatStore({
     connectionState: "disconnected",
     isTyping: false,
