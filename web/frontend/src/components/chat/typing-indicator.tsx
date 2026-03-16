@@ -11,6 +11,25 @@ function formatElapsed(seconds: number): string {
   return `${minutes}m ${remainingSeconds}s`
 }
 
+// Rotating thinking phase labels — cycles through i18n keys based on elapsed time.
+const THINKING_PHASES = [
+  "chat.thinking.step1",
+  "chat.thinking.step2",
+  "chat.thinking.step3",
+  "chat.thinking.step4",
+  "chat.thinking.step5",
+  "chat.thinking.step6",
+] as const
+
+function getThinkingPhase(seconds: number): string {
+  // Rotate every 4 seconds, loop back after all phases
+  const index = Math.min(
+    Math.floor(seconds / 4),
+    THINKING_PHASES.length - 1,
+  )
+  return THINKING_PHASES[index]
+}
+
 export function TypingIndicator() {
   const { t } = useTranslation()
   const { taskDone, stepCount, taskStartTime, stepSummaries } =
@@ -47,6 +66,9 @@ export function TypingIndicator() {
   const displayedElapsed = taskDone ? doneElapsed : elapsedSeconds
   const isMultiStep = stepCount > 0
 
+  // Dynamic thinking phase text that rotates based on elapsed time
+  const thinkingText = t(getThinkingPhase(displayedElapsed))
+
   // Status label and colors
   const statusColor = taskDone ? "emerald" : "violet"
 
@@ -75,19 +97,40 @@ export function TypingIndicator() {
                 <span className="ml-1 text-xs font-semibold text-violet-500">
                   {isMultiStep
                     ? t("chat.running.inProgress")
-                    : t("chat.thinking.step1")}
+                    : thinkingText}
                 </span>
               </>
             )}
           </div>
 
-          {/* Elapsed time badge */}
-          {(isMultiStep || taskDone) && (
+          {/* Elapsed time badge — always show when running */}
+          {!taskDone && (
+            <span className="text-muted-foreground whitespace-nowrap text-[11px] tabular-nums">
+              ⏱ {formatElapsed(displayedElapsed)}
+            </span>
+          )}
+          {taskDone && (
             <span className="text-muted-foreground whitespace-nowrap text-[11px] tabular-nums">
               ⏱ {formatElapsed(displayedElapsed)}
             </span>
           )}
         </div>
+
+        {/* Dynamic thinking phase hint — shown while waiting */}
+        {!taskDone && !isMultiStep && displayedElapsed >= 2 && (
+          <div className="text-muted-foreground flex items-center gap-2 text-[11px]">
+            <span className="animate-pulse">💭</span>
+            <span className="italic">{thinkingText}</span>
+          </div>
+        )}
+
+        {/* Multi-step: show current thinking phase between steps */}
+        {!taskDone && isMultiStep && (
+          <div className="text-muted-foreground flex items-center gap-2 text-[11px]">
+            <span className="animate-pulse">⚙️</span>
+            <span className="italic">{t("chat.running.nextStep")}</span>
+          </div>
+        )}
 
         {/* Step progress bar */}
         {isMultiStep && (

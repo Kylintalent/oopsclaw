@@ -23,8 +23,10 @@
     "thinking": {
       "step1": "Thinking...",
       "step2": "Analyzing your request...",
-      "step3": "Preparing response...",
-      "step4": "Almost there..."
+      "step3": "Calling tools & gathering info...",
+      "step4": "Processing data...",
+      "step5": "Still working on it...",
+      "step6": "Almost there, hang tight..."
     },
     "running": {
       "inProgress": "Executing...",
