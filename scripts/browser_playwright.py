@@ -574,17 +574,30 @@ def _execute_action(page, action: str, data: dict) -> dict:
             return {"success": False, "error": "selector is required for click action"}
 
         _log(f"\u6b65\u9aa4: click \u2192 \u5c1d\u8bd5\u70b9\u51fb\u5143\u7d20 selector={selector!r}")
-        try:
-            page.click(selector, timeout=5000)
-            _log(f"  \u2192 CSS \u9009\u62e9\u5668\u70b9\u51fb\u6210\u529f: {selector!r}")
-        except Exception as css_err:
-            _log(f"  \u2192 CSS \u9009\u62e9\u5668\u5931\u8d25 ({css_err})\uff0c\u5c1d\u8bd5\u6587\u5b57\u5339\u914d\u2026")
+
+        # Detect XPath selectors (start with // or xpath=)
+        _is_xpath = selector.startswith("//") or selector.lower().startswith("xpath=")
+
+        if _is_xpath:
+            xpath_expr = selector if selector.lower().startswith("xpath=") else f"xpath={selector}"
             try:
-                page.get_by_text(selector).first.click(timeout=5000)
-                _log(f"  \u2192 \u6587\u5b57\u5339\u914d\u70b9\u51fb\u6210\u529f: {selector!r}")
+                page.locator(xpath_expr).first.click(timeout=5000)
+                _log(f"  \u2192 XPath \u70b9\u51fb\u6210\u529f: {selector!r}")
             except Exception as exc:
-                _log(f"  \u2192 \u70b9\u51fb\u5931\u8d25: {exc}")
+                _log(f"  \u2192 XPath \u70b9\u51fb\u5931\u8d25: {exc}")
                 return {"success": False, "error": f"could not click \'{selector}\': {exc}"}
+        else:
+            try:
+                page.click(selector, timeout=5000)
+                _log(f"  \u2192 CSS \u9009\u62e9\u5668\u70b9\u51fb\u6210\u529f: {selector!r}")
+            except Exception as css_err:
+                _log(f"  \u2192 CSS \u9009\u62e9\u5668\u5931\u8d25 ({css_err})\uff0c\u5c1d\u8bd5\u6587\u5b57\u5339\u914d\u2026")
+                try:
+                    page.get_by_text(selector).first.click(timeout=5000)
+                    _log(f"  \u2192 \u6587\u5b57\u5339\u914d\u70b9\u51fb\u6210\u529f: {selector!r}")
+                except Exception as exc:
+                    _log(f"  \u2192 \u70b9\u51fb\u5931\u8d25: {exc}")
+                    return {"success": False, "error": f"could not click \'{selector}\': {exc}"}
 
         _log("\u7b49\u5f85\u9875\u9762\u54cd\u5e94 (1.5s)\u2026")
         page.wait_for_timeout(1500)
@@ -621,8 +634,13 @@ def _execute_action(page, action: str, data: dict) -> dict:
             return {"success": False, "error": "text is required for type action"}
 
         _log(f"\u6b65\u9aa4: type \u2192 \u5728 {selector!r} \u4e2d\u586b\u5165 {text!r}")
+        _is_xpath = selector.startswith("//") or selector.lower().startswith("xpath=")
         try:
-            page.fill(selector, text, timeout=5000)
+            if _is_xpath:
+                xpath_expr = selector if selector.lower().startswith("xpath=") else f"xpath={selector}"
+                page.locator(xpath_expr).first.fill(text, timeout=5000)
+            else:
+                page.fill(selector, text, timeout=5000)
             _log(f"  \u2192 \u586b\u5199\u6210\u529f")
         except Exception as exc:
             _log(f"  \u2192 \u586b\u5199\u5931\u8d25: {exc}")
