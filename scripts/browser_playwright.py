@@ -578,26 +578,76 @@ def _execute_action(page, action: str, data: dict) -> dict:
         # Detect XPath selectors (start with // or xpath=)
         _is_xpath = selector.startswith("//") or selector.lower().startswith("xpath=")
 
+        # Helper function to wait and click with better error handling
+        def _wait_and_click(locator, desc: str, timeout: int = 5000):
+            """Wait for element to be visible and clickable, then click."""
+            try:
+                # Wait for element to be attached and visible
+                locator.first.wait_for(state="visible", timeout=timeout)
+                # Wait for element to be enabled (clickable)
+                locator.first.wait_for(state="enabled", timeout=timeout)
+                # Click
+                locator.first.click(timeout=timeout)
+                return True, None
+            except Exception as exc:
+                return False, exc
+
+        clicked = False
+        last_error = None
+
         if _is_xpath:
             xpath_expr = selector if selector.lower().startswith("xpath=") else f"xpath={selector}"
             try:
-                page.locator(xpath_expr).first.click(timeout=5000)
-                _log(f"  \u2192 XPath \u70b9\u51fb\u6210\u529f: {selector!r}")
+                locator = page.locator(xpath_expr)
+                clicked, last_error = _wait_and_click(locator, "XPath", 5000)
+                if clicked:
+                    _log(f"  \u2192 XPath \u70b9\u51fb\u6210\u529f: {selector!r}")
+                else:
+                    _log(f"  \u2192 XPath \u70b9\u51fb\u5931\u8d25: {last_error}")
+                    return {"success": False, "error": f"could not click \'{selector}\': {last_error}"}
             except Exception as exc:
                 _log(f"  \u2192 XPath \u70b9\u51fb\u5931\u8d25: {exc}")
                 return {"success": False, "error": f"could not click \'{selector}\': {exc}"}
         else:
+            # Try CSS selector first
             try:
-                page.click(selector, timeout=5000)
-                _log(f"  \u2192 CSS \u9009\u62e9\u5668\u70b9\u51fb\u6210\u529f: {selector!r}")
+                locator = page.locator(selector)
+                clicked, last_error = _wait_and_click(locator, "CSS", 5000)
+                if clicked:
+                    _log(f"  \u2192 CSS \u9009\u62e9\u5668\u70b9\u51fb\u6210\u529f: {selector!r}")
             except Exception as css_err:
                 _log(f"  \u2192 CSS \u9009\u62e9\u5668\u5931\u8d25 ({css_err})\uff0c\u5c1d\u8bd5\u6587\u5b57\u5339\u914d\u2026")
+                last_error = css_err
+
+            # If CSS failed, try text matching with multiple strategies
+            if not clicked:
+                # Strategy 1: Exact text match
                 try:
-                    page.get_by_text(selector).first.click(timeout=5000)
-                    _log(f"  \u2192 \u6587\u5b57\u5339\u914d\u70b9\u51fb\u6210\u529f: {selector!r}")
+                    locator = page.get_by_text(selector, exact=False)
+                    clicked, err = _wait_and_click(locator, "text (partial)", 5000)
+                    if clicked:
+                        _log(f"  \u2192 \u6587\u5b57\u5339\u914d\u70b9\u51fb\u6210\u529f: {selector!r}")
                 except Exception as exc:
-                    _log(f"  \u2192 \u70b9\u51fb\u5931\u8d25: {exc}")
-                    return {"success": False, "error": f"could not click \'{selector}\': {exc}"}
+                    _log(f"  \u2192 \u6587\u5b57\u5339\u914d\u5931\u8d25: {exc}")
+                    last_error = exc
+
+            # Strategy 2: Try role-based button matching for common UI patterns
+            if not clicked and selector in ["\u5e94\u7528", "Application", "App", "\u786e\u5b9a", "OK", "\u53d6\u6d88", "Cancel", "\u63d0\u4ea4", "Submit"]:
+                try:
+                    # Try to find as a button or link with this text
+                    locator = page.get_by_role("button", name=selector)
+                    clicked, err = _wait_and_click(locator, "button role", 3000)
+                    if not clicked:
+                        locator = page.get_by_role("link", name=selector)
+                        clicked, err = _wait_and_click(locator, "link role", 3000)
+                    if clicked:
+                        _log(f"  \u2192 \u89d2\u8272\u5339\u914d\u70b9\u51fb\u6210\u529f: {selector!r}")
+                except Exception as exc:
+                    _log(f"  \u2192 \u89d2\u8272\u5339\u914d\u4e5f\u5931\u8d25: {exc}")
+
+            if not clicked:
+                _log(f"  \u2192 \u70b9\u51fb\u5931\u8d25: {last_error}")
+                return {"success": False, "error": f"could not click \'{selector}\': {last_error}"}
 
         _log("\u7b49\u5f85\u9875\u9762\u54cd\u5e94 (1.5s)\u2026")
         page.wait_for_timeout(1500)
