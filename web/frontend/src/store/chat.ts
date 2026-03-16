@@ -28,9 +28,11 @@ export interface ChatStoreState {
   // stepCount: number of intermediate messages received since typing started.
   // taskStartTime: timestamp (ms) when typing.start was received.
   // stepSummaries: one-line summary per completed step, shown in TypingIndicator.
+  // taskDone: true after the linger timer fires — indicator switches to "completed" mode.
   stepCount: number
   taskStartTime: number | null
   stepSummaries: string[]
+  taskDone: boolean
 }
 
 type ChatStorePatch = Partial<ChatStoreState>
@@ -44,6 +46,7 @@ const DEFAULT_CHAT_STATE: ChatStoreState = {
   stepCount: 0,
   taskStartTime: null,
   stepSummaries: [],
+  taskDone: false,
 }
 
 export const chatAtom = atom<ChatStoreState>(DEFAULT_CHAT_STATE)

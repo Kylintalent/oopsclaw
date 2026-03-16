@@ -50,7 +50,9 @@ function scheduleTypingClear() {
   clearTypingLinger()
   typingLingerTimer = setTimeout(() => {
     typingLingerTimer = null
-    updateChatStore({ isTyping: false, stepCount: 0, taskStartTime: null })
+    // Don't clear stepCount/stepSummaries — keep them visible.
+    // Switch to "done" mode so the indicator shows a completion state.
+    updateChatStore({ isTyping: false, taskDone: true })
   }, TYPING_LINGER_MS)
 }
 
@@ -150,7 +152,7 @@ function handlePicoMessage(message: PicoMessage) {
       // Cancel any pending linger timer — the next step is starting.
       clearTypingLinger()
       // Reset everything including summaries when a new task begins.
-      updateChatStore({ isTyping: true, stepCount: 0, taskStartTime: Date.now(), stepSummaries: [] })
+      updateChatStore({ isTyping: true, taskDone: false, stepCount: 0, taskStartTime: Date.now(), stepSummaries: [] })
       break
 
     case "typing.stop":
@@ -164,7 +166,7 @@ function handlePicoMessage(message: PicoMessage) {
     case "error":
       console.error("Pico error:", payload)
       clearTypingLinger()
-      updateChatStore({ isTyping: false, stepCount: 0, taskStartTime: null })
+      updateChatStore({ isTyping: false, taskDone: false, stepCount: 0, taskStartTime: null, stepSummaries: [] })
       break
 
     case "pong":
@@ -303,8 +305,10 @@ export function disconnectChat() {
   updateChatStore({
     connectionState: "disconnected",
     isTyping: false,
+    taskDone: false,
     stepCount: 0,
     taskStartTime: null,
+    stepSummaries: [],
   })
 }
 

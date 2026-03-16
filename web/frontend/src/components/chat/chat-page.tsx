@@ -27,6 +27,7 @@ export function ChatPage() {
   const {
     messages,
     isTyping,
+    taskDone,
     activeSessionId,
     sendMessage,
     switchSession,
@@ -160,7 +161,7 @@ export function ChatPage() {
             </div>
           ))}
 
-          {isTyping && <TypingIndicator />}
+          {(isTyping || taskDone) && <TypingIndicator />}
         </div>
       </div>
 

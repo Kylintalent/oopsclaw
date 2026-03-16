@@ -30,7 +30,8 @@
       "inProgress": "仍在执行中...",
       "stepsCompleted": "已完成 {{count}} 步",
       "elapsed": "已用时 {{seconds}} 秒",
-      "nextStep": "正在执行下一步..."
+      "nextStep": "正在执行下一步...",
+      "completed": "任务已完成"
     },
     "history": "历史记录",
     "noHistory": "暂无对话历史",
