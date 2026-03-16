@@ -32,6 +32,26 @@ let unsubscribeGateway: (() => void) | null = null
 let hydratePromise: Promise<void> | null = null
 let connectionGeneration = 0
 
+// Extract a concise one-line summary from a message for the TypingIndicator.
+// Strips markdown headings/bullets, takes the first meaningful line, and
+// truncates to 80 characters so it fits in the progress panel.
+function extractStepSummary(content: string): string {
+  const lines = content.split("\n")
+  for (const rawLine of lines) {
+    // Strip leading markdown syntax: headings (#), bullets (- * +), bold (**), backticks
+    const cleaned = rawLine
+      .replace(/^#+\s*/, "")
+      .replace(/^[-*+]\s+/, "")
+      .replace(/\*\*/g, "")
+      .replace(/`/g, "")
+      .trim()
+    if (cleaned.length > 0) {
+      return cleaned.length > 80 ? cleaned.slice(0, 79) + "…" : cleaned
+    }
+  }
+  return ""
+}
+
 async function loadSessionMessages(sessionId: string): Promise<ChatMessage[]> {
   const detail = await getSessionHistory(sessionId)
   const fallbackTime = detail.updated
@@ -57,6 +77,10 @@ function handlePicoMessage(message: PicoMessage) {
           ? normalizeUnixTimestamp(Number(message.timestamp))
           : Date.now()
 
+      // Extract a one-line summary from the message content for the progress indicator.
+      // Take the first non-empty line and truncate to 80 characters.
+      const summary = extractStepSummary(content)
+
       updateChatStore((prev) => ({
         messages: [
           ...prev.messages,
@@ -74,6 +98,9 @@ function handlePicoMessage(message: PicoMessage) {
         isTyping: true,
         stepCount: prev.stepCount + 1,
         taskStartTime: prev.taskStartTime ?? Date.now(),
+        stepSummaries: summary
+          ? [...prev.stepSummaries, summary]
+          : prev.stepSummaries,
       }))
       break
     }
@@ -94,11 +121,11 @@ function handlePicoMessage(message: PicoMessage) {
     }
 
     case "typing.start":
-      updateChatStore({ isTyping: true, stepCount: 0, taskStartTime: Date.now() })
+      updateChatStore({ isTyping: true, stepCount: 0, taskStartTime: Date.now(), stepSummaries: [] })
       break
 
     case "typing.stop":
-      updateChatStore({ isTyping: false, stepCount: 0, taskStartTime: null })
+      updateChatStore({ isTyping: false, stepCount: 0, taskStartTime: null, stepSummaries: [] })
       break
 
     case "error":

@@ -27,8 +27,10 @@ export interface ChatStoreState {
   // Tracks multi-step task progress while isTyping=true.
   // stepCount: number of intermediate messages received since typing started.
   // taskStartTime: timestamp (ms) when typing.start was received.
+  // stepSummaries: one-line summary per completed step, shown in TypingIndicator.
   stepCount: number
   taskStartTime: number | null
+  stepSummaries: string[]
 }
 
 type ChatStorePatch = Partial<ChatStoreState>
@@ -41,6 +43,7 @@ const DEFAULT_CHAT_STATE: ChatStoreState = {
   hasHydratedActiveSession: false,
   stepCount: 0,
   taskStartTime: null,
+  stepSummaries: [],
 }
 
 export const chatAtom = atom<ChatStoreState>(DEFAULT_CHAT_STATE)

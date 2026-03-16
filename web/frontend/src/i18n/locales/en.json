@@ -29,7 +29,8 @@
     "running": {
       "inProgress": "Still running...",
       "stepsCompleted": "{{count}} step(s) completed",
-      "elapsed": "{{seconds}}s elapsed"
+      "elapsed": "{{seconds}}s elapsed",
+      "nextStep": "Working on next step..."
     },
     "history": "History",
     "noHistory": "No chat history yet",
