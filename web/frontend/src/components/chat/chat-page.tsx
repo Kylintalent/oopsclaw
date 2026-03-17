@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { useChatModels } from "@/hooks/use-chat-models"
 import { useGateway } from "@/hooks/use-gateway"
+import { useInputHistory } from "@/hooks/use-input-history"
 import { usePicoChat } from "@/hooks/use-pico-chat"
 import { useSessionHistory } from "@/hooks/use-session-history"
 import { hydrateActiveSession } from "@/lib/pico-chat-controller"
@@ -82,9 +83,14 @@ export function ChatPage() {
     }
   }, [messages, isTyping, isAtBottom])
 
+  const { pushHistory, navigateUp, navigateDown, resetNavigation } =
+    useInputHistory()
+
   const handleSend = () => {
     if (!input.trim() || !isConnected) return
-    sendMessage(input.trim())
+    const trimmed = input.trim()
+    pushHistory(trimmed)
+    sendMessage(trimmed)
     setInput("")
   }
 
@@ -169,6 +175,9 @@ export function ChatPage() {
         input={input}
         onInputChange={setInput}
         onSend={handleSend}
+        onHistoryUp={navigateUp}
+        onHistoryDown={navigateDown}
+        onHistoryReset={resetNavigation}
         isConnected={isConnected}
         hasDefaultModel={Boolean(defaultModelName)}
       />

@@ -152,11 +152,17 @@ Supported actions:
 - type: fill a form field with text
 - get_text: fetch and return the visible text of a page
 - screenshot: take a screenshot of the current/specified page
+- list_elements: intelligently detect and list all interactive elements on the page (buttons, links, inputs)
+- find_element: find an element by natural language description (e.g., "search button", "username input")
+- smart_fill_form: automatically detect form fields and fill them with provided data
 - close_browser: explicitly close the persistent browser daemon when the task is fully complete
 
-Usage pattern for multi-step tasks:
-1. Use navigate/click/type/search repeatedly — the browser stays open between calls.
-2. Call close_browser only when the entire task is done.
+Smart workflow for complex pages:
+1. navigate to the page
+2. list_elements to see what's available, OR find_element to locate specific elements
+3. click/type as needed, OR smart_fill_form to auto-fill forms
+4. screenshot to verify results
+5. close_browser when done
 
 Use this tool when you need to interact with web pages beyond simple HTTP fetches — e.g. JavaScript-heavy sites, login forms, or multi-step flows. Each action shows its progress in the chat.`
 }
@@ -167,8 +173,8 @@ func (t *BrowserUseTool) Parameters() map[string]any {
 		"properties": map[string]any{
 			"action": map[string]any{
 				"type":        "string",
-				"enum":        []string{"navigate", "search", "click", "type", "get_text", "screenshot", "close_browser"},
-				"description": "The browser action to perform. Use close_browser to shut down the persistent browser daemon after the task is fully complete.",
+				"enum":        []string{"navigate", "search", "click", "type", "get_text", "screenshot", "list_elements", "find_element", "smart_fill_form", "close_browser"},
+				"description": "The browser action to perform. Use list_elements to discover interactive elements, find_element to locate by description, smart_fill_form for auto form filling. Use close_browser to shut down the daemon after the task is complete.",
 			},
 			"url": map[string]any{
 				"type":        "string",
@@ -186,6 +192,14 @@ func (t *BrowserUseTool) Parameters() map[string]any {
 				"type":        "string",
 				"enum":        []string{"google", "baidu", "bing"},
 				"description": "Search engine to use for the search action (default: google).",
+			},
+			"description": map[string]any{
+				"type":        "string",
+				"description": "Natural language description to find an element (required for find_element). Examples: 'search button', 'username input field', 'login link'.",
+			},
+			"form_data": map[string]any{
+				"type":        "object",
+				"description": "Key-value pairs of form data to fill (required for smart_fill_form). Keys should match field names, placeholders, or labels. Example: {'username': 'john', 'password': 'secret'}",
 			},
 		},
 		"required": []string{"action"},

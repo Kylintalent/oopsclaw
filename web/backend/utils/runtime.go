@@ -24,15 +24,15 @@ func GetDefaultConfigPath() string {
 	return filepath.Join(home, ".picoclaw", "config.json")
 }
 
-// FindPicoclawBinary locates the picoclaw executable.
+// FindPicoclawBinary locates the oopsclaw executable.
 // Search order:
 //  1. PICOCLAW_BINARY environment variable (explicit override)
 //  2. Same directory as the current executable
-//  3. Falls back to "picoclaw" and relies on $PATH
+//  3. Falls back to "oopsclaw" and relies on $PATH
 func FindPicoclawBinary() string {
-	binaryName := "picoclaw"
+	binaryName := "oopsclaw"
 	if runtime.GOOS == "windows" {
-		binaryName = "picoclaw.exe"
+		binaryName = "oopsclaw.exe"
 	}
 
 	if p := os.Getenv("PICOCLAW_BINARY"); p != "" {
@@ -48,7 +48,7 @@ func FindPicoclawBinary() string {
 		}
 	}
 
-	return "picoclaw"
+	return "oopsclaw"
 }
 
 // GetLocalIP returns the local IP address of the machine.

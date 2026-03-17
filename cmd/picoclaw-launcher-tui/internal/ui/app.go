@@ -362,7 +362,7 @@ func (s *appState) startTalk() {
 		return
 	}
 	s.app.Suspend(func() {
-		cmd := exec.Command("picoclaw", "agent")
+		cmd := exec.Command("oopsclaw", "agent")
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -383,7 +383,7 @@ func (s *appState) startGateway() {
 		return
 	}
 	_ = stopGatewayProcess()
-	cmd := exec.Command("picoclaw", "gateway")
+	cmd := exec.Command("oopsclaw", "gateway")
 	logFile, err := os.OpenFile(s.logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
 		s.showMessage("Gateway failed", err.Error())

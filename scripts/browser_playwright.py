@@ -743,6 +743,348 @@ def _execute_action(page, action: str, data: dict) -> dict:
             "text": extract_page_text(page),
         }
 
+    elif action == "list_elements":
+        # Smart element detection - return structured list of interactive elements
+        _log("步骤: list_elements → 探测页面可交互元素")
+        try:
+            elements = page.evaluate("""() => {
+                const results = [];
+                let id = 0;
+                
+                // Helper to get element info
+                function getElementInfo(el, type) {
+                    const rect = el.getBoundingClientRect();
+                    const text = (el.innerText || el.textContent || '').trim().substring(0, 100);
+                    const ariaLabel = el.getAttribute('aria-label') || '';
+                    const placeholder = el.getAttribute('placeholder') || '';
+                    const name = el.getAttribute('name') || '';
+                    
+                    return {
+                        id: ++id,
+                        type: type,
+                        tag: el.tagName.toLowerCase(),
+                        text: text,
+                        ariaLabel: ariaLabel,
+                        placeholder: placeholder,
+                        name: name,
+                        visible: rect.width > 0 && rect.height > 0 && rect.top >= 0,
+                        x: Math.round(rect.left),
+                        y: Math.round(rect.top),
+                        width: Math.round(rect.width),
+                        height: Math.round(rect.height)
+                    };
+                }
+                
+                // Find buttons
+                document.querySelectorAll('button, [role="button"], input[type="submit"], input[type="button"]').forEach(el => {
+                    if (el.offsetParent !== null) results.push(getElementInfo(el, 'button'));
+                });
+                
+                // Find links
+                document.querySelectorAll('a[href]').forEach(el => {
+                    if (el.offsetParent !== null && el.innerText.trim()) {
+                        results.push(getElementInfo(el, 'link'));
+                    }
+                });
+                
+                // Find inputs
+                document.querySelectorAll('input:not([type="hidden"]), textarea, select').forEach(el => {
+                    if (el.offsetParent !== null) {
+                        const type = el.type || 'text';
+                        const info = getElementInfo(el, 'input');
+                        info.inputType = type;
+                        results.push(info);
+                    }
+                });
+                
+                // Find labels (for context)
+                document.querySelectorAll('label').forEach(el => {
+                    if (el.offsetParent !== null && el.innerText.trim()) {
+                        results.push(getElementInfo(el, 'label'));
+                    }
+                });
+                
+                return results;
+            }""")
+            
+            # Filter visible elements only
+            visible_elements = [e for e in elements if e.get('visible')]
+            
+            # Build human-readable summary
+            summary_lines = []
+            summary_lines.append(f"发现 {len(visible_elements)} 个可交互元素：\\n")
+            
+            for e in visible_elements[:30]:  # Limit to first 30
+                desc = f"[{e['id']}] {e['type'].upper()}"
+                if e.get('inputType'):
+                    desc += f"({e['inputType']})"
+                if e['text']:
+                    desc += f" \\\"{e['text'][:50]}\\\""
+                if e['ariaLabel']:
+                    desc += f" [aria-label: {e['ariaLabel'][:30]}]"
+                if e['placeholder']:
+                    desc += f" [placeholder: {e['placeholder'][:30]}]"
+                summary_lines.append(desc)
+            
+            if len(visible_elements) > 30:
+                summary_lines.append(f"\\n... 还有 {len(visible_elements) - 30} 个元素")
+            
+            element_text = "\\n".join(summary_lines)
+            
+            # Take screenshot with elements highlighted
+            screenshot_path = _take_screenshot(page)
+            
+            return {
+                "success": True,
+                "title": page.title(),
+                "url": page.url,
+                "text": element_text,
+                "elements": visible_elements,
+                "screenshot": screenshot_path,
+            }
+        except Exception as exc:
+            return {"success": False, "error": f"Failed to list elements: {exc}"}
+
+    elif action == "find_element":
+        # Semantic element finding by description
+        description = data.get("description", "").lower()
+        if not description:
+            return {"success": False, "error": "description is required for find_element"}
+        
+        _log(f"步骤: find_element → 查找元素: {description!r}")
+        
+        try:
+            # First, get all elements
+            all_elements = page.evaluate("""() => {
+                const results = [];
+                let id = 0;
+                
+                function getElementInfo(el, type) {
+                    const rect = el.getBoundingClientRect();
+                    const text = (el.innerText || el.textContent || '').trim().substring(0, 100);
+                    const ariaLabel = el.getAttribute('aria-label') || '';
+                    const placeholder = el.getAttribute('placeholder') || '';
+                    const title = el.getAttribute('title') || '';
+                    const name = el.getAttribute('name') || '';
+                    const id_attr = el.id || '';
+                    
+                    // Build searchable text
+                    const searchable = [
+                        text, ariaLabel, placeholder, title, name, id_attr,
+                        el.className || ''
+                    ].join(' ').toLowerCase();
+                    
+                    return {
+                        id: ++id,
+                        type: type,
+                        tag: el.tagName.toLowerCase(),
+                        text: text,
+                        ariaLabel: ariaLabel,
+                        placeholder: placeholder,
+                        title: title,
+                        name: name,
+                        id_attr: id_attr,
+                        searchable: searchable,
+                        visible: rect.width > 0 && rect.height > 0
+                    };
+                }
+                
+                // All interactive elements
+                const selectors = [
+                    'button', '[role="button"]', 'input[type="submit"]', 'input[type="button"]',
+                    'a[href]', 'input:not([type="hidden"])', 'textarea', 'select',
+                    '[role="link"]', '[role="input"]', '[role="textbox"]'
+                ];
+                
+                selectors.forEach(sel => {
+                    document.querySelectorAll(sel).forEach(el => {
+                        if (el.offsetParent !== null) {
+                            const type = el.tagName.toLowerCase() === 'a' ? 'link' : 
+                                        el.tagName.toLowerCase() === 'input' ? 'input' : 'button';
+                            results.push(getElementInfo(el, type));
+                        }
+                    });
+                });
+                
+                return results;
+            }""")
+            
+            # Score each element by relevance to description
+            desc_words = description.split()
+            best_match = None
+            best_score = 0
+            
+            for e in all_elements:
+                if not e.get('visible'):
+                    continue
+                    
+                score = 0
+                searchable = e.get('searchable', '')
+                
+                # Exact match gets high score
+                if description in searchable:
+                    score += 100
+                
+                # Word match
+                for word in desc_words:
+                    if word in searchable:
+                        score += 10
+                
+                # Type-specific bonuses
+                if 'button' in description and e['type'] == 'button':
+                    score += 5
+                if 'link' in description or '链接' in description and e['type'] == 'link':
+                    score += 5
+                if ('input' in description or '输入' in description or '框' in description) and e['type'] == 'input':
+                    score += 5
+                
+                # Text match bonus
+                if e['text'] and any(word in e['text'].lower() for word in desc_words):
+                    score += 20
+                
+                if score > best_score:
+                    best_score = score
+                    best_match = e
+            
+            if best_match and best_score > 0:
+                # Build a selector for this element
+                selector = None
+                if best_match.get('id_attr'):
+                    selector = f"#{best_match['id_attr']}"
+                elif best_match.get('text'):
+                    # Use text-based selector
+                    selector = f"text={best_match['text'][:30]}"
+                else:
+                    selector = f"nth-match({best_match['tag']}, {best_match['id']})"
+                
+                result_text = f"""找到最匹配的元素：
+- 类型: {best_match['type']}
+- 文本: {best_match.get('text', 'N/A')}
+- Aria标签: {best_match.get('ariaLabel', 'N/A')}
+- 推荐选择器: {selector}
+- 匹配度: {best_score}分"""
+                
+                return {
+                    "success": True,
+                    "title": page.title(),
+                    "url": page.url,
+                    "text": result_text,
+                    "element": best_match,
+                    "suggested_selector": selector,
+                    "score": best_score,
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": f"未找到匹配 '{description}' 的元素",
+                    "text": f"尝试了以下关键词: {desc_words}",
+                }
+                
+        except Exception as exc:
+            return {"success": False, "error": f"Failed to find element: {exc}"}
+
+    elif action == "smart_fill_form":
+        # Intelligent form filling - auto-detect form fields
+        form_data = data.get("form_data", {})
+        if not form_data:
+            return {"success": False, "error": "form_data is required for smart_fill_form"}
+        
+        _log(f"步骤: smart_fill_form → 智能填写表单: {json.dumps(form_data, ensure_ascii=False)}")
+        
+        try:
+            filled_fields = []
+            errors = []
+            
+            # Find all input fields
+            inputs = page.query_selector_all('input:not([type="hidden"]), textarea, select')
+            
+            for input_el in inputs:
+                try:
+                    # Get field info
+                    input_type = input_el.get_attribute('type') or 'text'
+                    name = input_el.get_attribute('name') or ''
+                    id_attr = input_el.get_attribute('id') or ''
+                    placeholder = input_el.get_attribute('placeholder') or ''
+                    aria_label = input_el.get_attribute('aria-label') or ''
+                    
+                    # Build field identifier
+                    field_key = None
+                    for key in form_data.keys():
+                        key_lower = key.lower()
+                        # Match by various attributes
+                        if (key_lower in name.lower() or 
+                            key_lower in id_attr.lower() or 
+                            key_lower in placeholder.lower() or
+                            key_lower in aria_label.lower() or
+                            key in [name, id_attr, placeholder, aria_label]):
+                            field_key = key
+                            break
+                    
+                    if field_key:
+                        value = form_data[field_key]
+                        
+                        # Handle different input types
+                        if input_type in ['text', 'email', 'tel', 'url', 'search', 'password']:
+                            input_el.fill(str(value))
+                            filled_fields.append(f"{field_key} → {input_type} field")
+                        elif input_type == 'textarea':
+                            input_el.fill(str(value))
+                            filled_fields.append(f"{field_key} → textarea")
+                        elif input_type == 'select-one':
+                            input_el.select_option(label=str(value))
+                            filled_fields.append(f"{field_key} → select")
+                        elif input_type == 'checkbox':
+                            if value:
+                                input_el.check()
+                            else:
+                                input_el.uncheck()
+                            filled_fields.append(f"{field_key} → checkbox")
+                        elif input_type == 'radio':
+                            # Find radio with matching value
+                            radio_group = name or id_attr
+                            if radio_group:
+                                page.locator(f'input[type="radio"][name="{radio_group}"][value="{value}"]').check()
+                                filled_fields.append(f"{field_key} → radio")
+                        
+                except Exception as field_err:
+                    errors.append(f"Field error: {field_err}")
+            
+            # Try to find and click submit button
+            submit_clicked = False
+            for submit_text in ['提交', '保存', '确认', 'Submit', 'Save', 'Confirm', '应用']:
+                try:
+                    submit_btn = page.get_by_role('button', name=submit_text)
+                    if submit_btn.is_visible(timeout=1000):
+                        submit_btn.click()
+                        submit_clicked = True
+                        filled_fields.append(f"点击提交按钮: {submit_text}")
+                        break
+                except:
+                    continue
+            
+            result_text = f"""表单填写完成：
+- 成功填写 {len(filled_fields)} 个字段：
+  {chr(10).join('  - ' + f for f in filled_fields)}
+- {'已自动点击提交按钮' if submit_clicked else '未找到提交按钮，请手动点击'}"""
+            
+            if errors:
+                result_text += f"\\n- 错误: {len(errors)} 个\\n  " + "\\n  ".join(errors[:3])
+            
+            page.wait_for_timeout(1000)
+            screenshot_path = _take_screenshot(page)
+            
+            return {
+                "success": True,
+                "title": page.title(),
+                "url": page.url,
+                "text": result_text,
+                "screenshot": screenshot_path,
+                "filled_count": len(filled_fields),
+            }
+            
+        except Exception as exc:
+            return {"success": False, "error": f"Form filling failed: {exc}"}
+
     else:
         return {"success": False, "error": f"unknown action: {action}"}
 
