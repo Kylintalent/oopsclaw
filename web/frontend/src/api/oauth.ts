@@ -60,13 +60,13 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export async function getOAuthProviders(): Promise<OAuthProvidersResponse> {
-  return request<OAuthProvidersResponse>("/api/oauth/providers")
+  return request<OAuthProvidersResponse>("/oopsclaw/oauth/providers")
 }
 
 export async function loginOAuth(
   payload: OAuthLoginRequest,
 ): Promise<OAuthLoginResponse> {
-  return request<OAuthLoginResponse>("/api/oauth/login", {
+  return request<OAuthLoginResponse>("/oopsclaw/oauth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -75,13 +75,13 @@ export async function loginOAuth(
 
 export async function getOAuthFlow(flowID: string): Promise<OAuthFlowState> {
   return request<OAuthFlowState>(
-    `/api/oauth/flows/${encodeURIComponent(flowID)}`,
+    `/oopsclaw/oauth/flows/${encodeURIComponent(flowID)}`,
   )
 }
 
 export async function pollOAuthFlow(flowID: string): Promise<OAuthFlowState> {
   return request<OAuthFlowState>(
-    `/api/oauth/flows/${encodeURIComponent(flowID)}/poll`,
+    `/oopsclaw/oauth/flows/${encodeURIComponent(flowID)}/poll`,
     {
       method: "POST",
     },
@@ -92,7 +92,7 @@ export async function logoutOAuth(
   provider: OAuthProvider,
 ): Promise<{ status: string; provider: OAuthProvider }> {
   return request<{ status: string; provider: OAuthProvider }>(
-    "/api/oauth/logout",
+    "/oopsclaw/oauth/logout",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

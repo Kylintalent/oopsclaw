@@ -24,15 +24,15 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export async function getPicoToken(): Promise<PicoTokenResponse> {
-  return request<PicoTokenResponse>("/api/pico/token")
+  return request<PicoTokenResponse>("/oopsclaw/pico/token")
 }
 
 export async function regenPicoToken(): Promise<PicoTokenResponse> {
-  return request<PicoTokenResponse>("/api/pico/token", { method: "POST" })
+  return request<PicoTokenResponse>("/oopsclaw/pico/token", { method: "POST" })
 }
 
 export async function setupPico(): Promise<PicoSetupResponse> {
-  return request<PicoSetupResponse>("/api/pico/setup", { method: "POST" })
+  return request<PicoSetupResponse>("/oopsclaw/pico/setup", { method: "POST" })
 }
 
 export type { PicoTokenResponse, PicoSetupResponse }

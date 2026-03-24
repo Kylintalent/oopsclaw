@@ -157,8 +157,8 @@ var toolCatalog = []toolCatalogEntry{
 }
 
 func (h *Handler) registerToolRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /api/tools", h.handleListTools)
-	mux.HandleFunc("PUT /api/tools/{name}/state", h.handleUpdateToolState)
+	mux.HandleFunc("GET /oopsclaw/tools", h.handleListTools)
+	mux.HandleFunc("PUT /oopsclaw/tools/{name}/state", h.handleUpdateToolState)
 }
 
 func (h *Handler) handleListTools(w http.ResponseWriter, r *http.Request) {

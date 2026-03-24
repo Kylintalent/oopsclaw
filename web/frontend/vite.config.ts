@@ -20,12 +20,13 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  base: "/oopsclaw/",
   build: {
     chunkSizeWarningLimit: 2048,
   },
   server: {
     proxy: {
-      "/api": {
+      "/oopsclaw": {
         target: "http://localhost:18800",
         changeOrigin: true,
       },

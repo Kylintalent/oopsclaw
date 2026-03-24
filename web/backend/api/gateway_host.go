@@ -58,6 +58,17 @@ func requestHostName(r *http.Request) string {
 }
 
 func (h *Handler) buildWsURL(r *http.Request, cfg *config.Config) string {
+	// When accessed through a reverse proxy (X-Forwarded-Host or X-Forwarded-Proto present),
+	// return a WebSocket URL that goes through the proxy instead of directly to the gateway port.
+	// The proxy must forward /pico/ws to the gateway.
+	if forwardedHost := r.Header.Get("X-Forwarded-Host"); forwardedHost != "" {
+		scheme := "ws"
+		if proto := r.Header.Get("X-Forwarded-Proto"); proto == "https" {
+			scheme = "wss"
+		}
+		return scheme + "://" + forwardedHost + "/pico/ws"
+	}
+
 	host := h.effectiveGatewayBindHost(cfg)
 	if host == "" || host == "0.0.0.0" {
 		host = requestHostName(r)

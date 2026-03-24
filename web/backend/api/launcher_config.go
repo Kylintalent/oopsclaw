@@ -15,8 +15,8 @@ type launcherConfigPayload struct {
 }
 
 func (h *Handler) registerLauncherConfigRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /api/system/launcher-config", h.handleGetLauncherConfig)
-	mux.HandleFunc("PUT /api/system/launcher-config", h.handleUpdateLauncherConfig)
+	mux.HandleFunc("GET /oopsclaw/system/launcher-config", h.handleGetLauncherConfig)
+	mux.HandleFunc("PUT /oopsclaw/system/launcher-config", h.handleUpdateLauncherConfig)
 }
 
 func (h *Handler) launcherConfigPath() string {

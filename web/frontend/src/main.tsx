@@ -11,6 +11,7 @@ const queryClient = new QueryClient()
 
 const router = createRouter({
   routeTree,
+  basepath: "/oopsclaw",
   context: {
     queryClient,
   },

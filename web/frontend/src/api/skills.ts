@@ -30,18 +30,18 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export async function getSkills(): Promise<SkillsResponse> {
-  return request<SkillsResponse>("/api/skills")
+  return request<SkillsResponse>("/oopsclaw/skills")
 }
 
 export async function getSkill(name: string): Promise<SkillDetailResponse> {
-  return request<SkillDetailResponse>(`/api/skills/${encodeURIComponent(name)}`)
+  return request<SkillDetailResponse>(`/oopsclaw/skills/${encodeURIComponent(name)}`)
 }
 
 export async function importSkill(file: File): Promise<SkillActionResponse> {
   const formData = new FormData()
   formData.set("file", file)
 
-  const res = await fetch("/api/skills/import", {
+  const res = await fetch("/oopsclaw/skills/import", {
     method: "POST",
     body: formData,
   })
@@ -53,7 +53,7 @@ export async function importSkill(file: File): Promise<SkillActionResponse> {
 
 export async function deleteSkill(name: string): Promise<SkillActionResponse> {
   return request<SkillActionResponse>(
-    `/api/skills/${encodeURIComponent(name)}`,
+    `/oopsclaw/skills/${encodeURIComponent(name)}`,
     {
       method: "DELETE",
     },

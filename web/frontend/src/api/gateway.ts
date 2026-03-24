@@ -35,7 +35,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export async function getGatewayStatus(): Promise<GatewayStatusResponse> {
-  return request<GatewayStatusResponse>("/api/gateway/status")
+  return request<GatewayStatusResponse>("/oopsclaw/gateway/status")
 }
 
 export async function getGatewayLogs(options?: {
@@ -50,29 +50,29 @@ export async function getGatewayLogs(options?: {
     params.set("log_run_id", options.log_run_id.toString())
   }
   const queryString = params.toString() ? `?${params.toString()}` : ""
-  return request<GatewayLogsResponse>(`/api/gateway/logs${queryString}`)
+  return request<GatewayLogsResponse>(`/oopsclaw/gateway/logs${queryString}`)
 }
 
 export async function startGateway(): Promise<GatewayActionResponse> {
-  return request<GatewayActionResponse>("/api/gateway/start", {
+  return request<GatewayActionResponse>("/oopsclaw/gateway/start", {
     method: "POST",
   })
 }
 
 export async function stopGateway(): Promise<GatewayActionResponse> {
-  return request<GatewayActionResponse>("/api/gateway/stop", {
+  return request<GatewayActionResponse>("/oopsclaw/gateway/stop", {
     method: "POST",
   })
 }
 
 export async function restartGateway(): Promise<GatewayActionResponse> {
-  return request<GatewayActionResponse>("/api/gateway/restart", {
+  return request<GatewayActionResponse>("/oopsclaw/gateway/restart", {
     method: "POST",
   })
 }
 
 export async function clearGatewayLogs(): Promise<GatewayActionResponse> {
-  return request<GatewayActionResponse>("/api/gateway/logs/clear", {
+  return request<GatewayActionResponse>("/oopsclaw/gateway/logs/clear", {
     method: "POST",
   })
 }

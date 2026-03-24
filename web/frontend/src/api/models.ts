@@ -45,13 +45,13 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export async function getModels(): Promise<ModelsListResponse> {
-  return request<ModelsListResponse>("/api/models")
+  return request<ModelsListResponse>("/oopsclaw/models")
 }
 
 export async function addModel(
   model: Partial<ModelInfo>,
 ): Promise<ModelActionResponse> {
-  return request<ModelActionResponse>("/api/models", {
+  return request<ModelActionResponse>("/oopsclaw/models", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(model),
@@ -62,7 +62,7 @@ export async function updateModel(
   index: number,
   model: Partial<ModelInfo>,
 ): Promise<ModelActionResponse> {
-  return request<ModelActionResponse>(`/api/models/${index}`, {
+  return request<ModelActionResponse>(`/oopsclaw/models/${index}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(model),
@@ -70,7 +70,7 @@ export async function updateModel(
 }
 
 export async function deleteModel(index: number): Promise<ModelActionResponse> {
-  return request<ModelActionResponse>(`/api/models/${index}`, {
+  return request<ModelActionResponse>(`/oopsclaw/models/${index}`, {
     method: "DELETE",
   })
 }
@@ -78,7 +78,7 @@ export async function deleteModel(index: number): Promise<ModelActionResponse> {
 export async function setDefaultModel(
   modelName: string,
 ): Promise<ModelActionResponse> {
-  const response = await request<ModelActionResponse>("/api/models/default", {
+  const response = await request<ModelActionResponse>("/oopsclaw/models/default", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ model_name: modelName }),

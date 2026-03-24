@@ -38,7 +38,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export async function getTools(): Promise<ToolsResponse> {
-  return request<ToolsResponse>("/api/tools")
+  return request<ToolsResponse>("/oopsclaw/tools")
 }
 
 export async function setToolEnabled(
@@ -46,7 +46,7 @@ export async function setToolEnabled(
   enabled: boolean,
 ): Promise<ToolActionResponse> {
   return request<ToolActionResponse>(
-    `/api/tools/${encodeURIComponent(name)}/state`,
+    `/oopsclaw/tools/${encodeURIComponent(name)}/state`,
     {
       method: "PUT",
       headers: { "Content-Type": "application/json" },

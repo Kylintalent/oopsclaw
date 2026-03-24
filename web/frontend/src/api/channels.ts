@@ -45,17 +45,17 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export async function getChannelsCatalog(): Promise<ChannelsCatalogResponse> {
-  return request<ChannelsCatalogResponse>("/api/channels/catalog")
+  return request<ChannelsCatalogResponse>("/oopsclaw/channels/catalog")
 }
 
 export async function getAppConfig(): Promise<AppConfig> {
-  return request<AppConfig>("/api/config")
+  return request<AppConfig>("/oopsclaw/config")
 }
 
 export async function patchAppConfig(
   patch: Record<string, unknown>,
 ): Promise<ConfigActionResponse> {
-  return request<ConfigActionResponse>("/api/config", {
+  return request<ConfigActionResponse>("/oopsclaw/config", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(patch),

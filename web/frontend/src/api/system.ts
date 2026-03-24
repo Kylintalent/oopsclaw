@@ -34,13 +34,13 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export async function getAutoStartStatus(): Promise<AutoStartStatus> {
-  return request<AutoStartStatus>("/api/system/autostart")
+  return request<AutoStartStatus>("/oopsclaw/system/autostart")
 }
 
 export async function setAutoStartEnabled(
   enabled: boolean,
 ): Promise<AutoStartStatus> {
-  return request<AutoStartStatus>("/api/system/autostart", {
+  return request<AutoStartStatus>("/oopsclaw/system/autostart", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ enabled }),
@@ -48,13 +48,13 @@ export async function setAutoStartEnabled(
 }
 
 export async function getLauncherConfig(): Promise<LauncherConfig> {
-  return request<LauncherConfig>("/api/system/launcher-config")
+  return request<LauncherConfig>("/oopsclaw/system/launcher-config")
 }
 
 export async function setLauncherConfig(
   payload: LauncherConfig,
 ): Promise<LauncherConfig> {
-  return request<LauncherConfig>("/api/system/launcher-config", {
+  return request<LauncherConfig>("/oopsclaw/system/launcher-config", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

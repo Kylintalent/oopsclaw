@@ -13,14 +13,14 @@ import (
 
 // registerPicoRoutes binds Pico Channel management endpoints to the ServeMux.
 func (h *Handler) registerPicoRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /api/pico/token", h.handleGetPicoToken)
-	mux.HandleFunc("POST /api/pico/token", h.handleRegenPicoToken)
-	mux.HandleFunc("POST /api/pico/setup", h.handlePicoSetup)
+	mux.HandleFunc("GET /oopsclaw/pico/token", h.handleGetPicoToken)
+	mux.HandleFunc("POST /oopsclaw/pico/token", h.handleRegenPicoToken)
+	mux.HandleFunc("POST /oopsclaw/pico/setup", h.handlePicoSetup)
 }
 
 // handleGetPicoToken returns the current WS token and URL for the frontend.
 //
-//	GET /api/pico/token
+//	GET /oopsclaw/pico/token
 func (h *Handler) handleGetPicoToken(w http.ResponseWriter, r *http.Request) {
 	cfg, err := config.LoadConfig(h.configPath)
 	if err != nil {
@@ -40,7 +40,7 @@ func (h *Handler) handleGetPicoToken(w http.ResponseWriter, r *http.Request) {
 
 // handleRegenPicoToken generates a new Pico WebSocket token and saves it.
 //
-//	POST /api/pico/token
+//	POST /oopsclaw/pico/token
 func (h *Handler) handleRegenPicoToken(w http.ResponseWriter, r *http.Request) {
 	cfg, err := config.LoadConfig(h.configPath)
 	if err != nil {
@@ -107,7 +107,7 @@ func (h *Handler) ensurePicoChannel() (bool, error) {
 
 // handlePicoSetup automatically configures everything needed for the Pico Channel to work.
 //
-//	POST /api/pico/setup
+//	POST /oopsclaw/pico/setup
 func (h *Handler) handlePicoSetup(w http.ResponseWriter, r *http.Request) {
 	changed, err := h.ensurePicoChannel()
 	if err != nil {

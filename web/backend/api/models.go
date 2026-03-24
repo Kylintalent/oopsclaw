@@ -13,11 +13,11 @@ import (
 
 // registerModelRoutes binds model list management endpoints to the ServeMux.
 func (h *Handler) registerModelRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /api/models", h.handleListModels)
-	mux.HandleFunc("POST /api/models", h.handleAddModel)
-	mux.HandleFunc("POST /api/models/default", h.handleSetDefaultModel)
-	mux.HandleFunc("PUT /api/models/{index}", h.handleUpdateModel)
-	mux.HandleFunc("DELETE /api/models/{index}", h.handleDeleteModel)
+	mux.HandleFunc("GET /oopsclaw/models", h.handleListModels)
+	mux.HandleFunc("POST /oopsclaw/models", h.handleAddModel)
+	mux.HandleFunc("POST /oopsclaw/models/default", h.handleSetDefaultModel)
+	mux.HandleFunc("PUT /oopsclaw/models/{index}", h.handleUpdateModel)
+	mux.HandleFunc("DELETE /oopsclaw/models/{index}", h.handleDeleteModel)
 }
 
 // modelResponse is the JSON structure returned for each model in the list.
@@ -44,7 +44,7 @@ type modelResponse struct {
 
 // handleListModels returns all model_list entries with masked API keys.
 //
-//	GET /api/models
+//	GET /oopsclaw/models
 func (h *Handler) handleListModels(w http.ResponseWriter, r *http.Request) {
 	cfg, err := config.LoadConfig(h.configPath)
 	if err != nil {
@@ -96,7 +96,7 @@ func (h *Handler) handleListModels(w http.ResponseWriter, r *http.Request) {
 
 // handleAddModel appends a new model configuration entry.
 //
-//	POST /api/models
+//	POST /oopsclaw/models
 func (h *Handler) handleAddModel(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
 	if err != nil {
@@ -141,7 +141,7 @@ func (h *Handler) handleAddModel(w http.ResponseWriter, r *http.Request) {
 // stored key is preserved so callers can update only api_base / proxy without
 // exposing or clearing the secret.
 //
-//	PUT /api/models/{index}
+//	PUT /oopsclaw/models/{index}
 func (h *Handler) handleUpdateModel(w http.ResponseWriter, r *http.Request) {
 	idx, err := strconv.Atoi(r.PathValue("index"))
 	if err != nil {
@@ -197,7 +197,7 @@ func (h *Handler) handleUpdateModel(w http.ResponseWriter, r *http.Request) {
 
 // handleDeleteModel removes a model configuration entry at the given index.
 //
-//	DELETE /api/models/{index}
+//	DELETE /oopsclaw/models/{index}
 func (h *Handler) handleDeleteModel(w http.ResponseWriter, r *http.Request) {
 	idx, err := strconv.Atoi(r.PathValue("index"))
 	if err != nil {
@@ -239,7 +239,7 @@ func (h *Handler) handleDeleteModel(w http.ResponseWriter, r *http.Request) {
 
 // handleSetDefaultModel sets the default model for all agents.
 //
-//	POST /api/models/default
+//	POST /oopsclaw/models/default
 func (h *Handler) handleSetDefaultModel(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
 	if err != nil {

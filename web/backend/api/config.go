@@ -11,14 +11,14 @@ import (
 
 // registerConfigRoutes binds configuration management endpoints to the ServeMux.
 func (h *Handler) registerConfigRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /api/config", h.handleGetConfig)
-	mux.HandleFunc("PUT /api/config", h.handleUpdateConfig)
-	mux.HandleFunc("PATCH /api/config", h.handlePatchConfig)
+	mux.HandleFunc("GET /oopsclaw/config", h.handleGetConfig)
+	mux.HandleFunc("PUT /oopsclaw/config", h.handleUpdateConfig)
+	mux.HandleFunc("PATCH /oopsclaw/config", h.handlePatchConfig)
 }
 
 // handleGetConfig returns the complete system configuration.
 //
-//	GET /api/config
+//	GET /oopsclaw/config
 func (h *Handler) handleGetConfig(w http.ResponseWriter, r *http.Request) {
 	cfg, err := config.LoadConfig(h.configPath)
 	if err != nil {
@@ -34,7 +34,7 @@ func (h *Handler) handleGetConfig(w http.ResponseWriter, r *http.Request) {
 
 // handleUpdateConfig updates the complete system configuration.
 //
-//	PUT /api/config
+//	PUT /oopsclaw/config
 func (h *Handler) handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
 	if err != nil {
@@ -88,7 +88,7 @@ func execAllowRemoteOmitted(body []byte) bool {
 // handlePatchConfig partially updates the system configuration using JSON Merge Patch (RFC 7396).
 // Only the fields present in the request body will be updated; all other fields remain unchanged.
 //
-//	PATCH /api/config
+//	PATCH /oopsclaw/config
 func (h *Handler) handlePatchConfig(w http.ResponseWriter, r *http.Request) {
 	patchBody, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
 	if err != nil {

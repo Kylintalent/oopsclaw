@@ -33,12 +33,12 @@ var channelCatalog = []channelCatalogItem{
 
 // registerChannelRoutes binds read-only channel catalog endpoints to the ServeMux.
 func (h *Handler) registerChannelRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /api/channels/catalog", h.handleListChannelCatalog)
+	mux.HandleFunc("GET /oopsclaw/channels/catalog", h.handleListChannelCatalog)
 }
 
 // handleListChannelCatalog returns the channels supported by backend.
 //
-//	GET /api/channels/catalog
+//	GET /oopsclaw/channels/catalog
 func (h *Handler) handleListChannelCatalog(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{

@@ -50,7 +50,7 @@ export function useGateway() {
     }, 5000)
 
     // Subscribe to SSE for real-time updates globally
-    const es = new EventSource("/api/gateway/events")
+    const es = new EventSource("/oopsclaw/gateway/events")
 
     es.onmessage = (event) => {
       try {

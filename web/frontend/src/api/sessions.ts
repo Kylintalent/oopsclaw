@@ -26,7 +26,7 @@ export async function getSessions(
     limit: limit.toString(),
   })
 
-  const res = await fetch(`/api/sessions?${params.toString()}`)
+  const res = await fetch(`/oopsclaw/sessions?${params.toString()}`)
   if (!res.ok) {
     throw new Error(`Failed to fetch sessions: ${res.status}`)
   }
@@ -34,7 +34,7 @@ export async function getSessions(
 }
 
 export async function getSessionHistory(id: string): Promise<SessionDetail> {
-  const res = await fetch(`/api/sessions/${encodeURIComponent(id)}`)
+  const res = await fetch(`/oopsclaw/sessions/${encodeURIComponent(id)}`)
   if (!res.ok) {
     throw new Error(`Failed to fetch session ${id}: ${res.status}`)
   }
@@ -42,7 +42,7 @@ export async function getSessionHistory(id: string): Promise<SessionDetail> {
 }
 
 export async function deleteSession(id: string): Promise<void> {
-  const res = await fetch(`/api/sessions/${encodeURIComponent(id)}`, {
+  const res = await fetch(`/oopsclaw/sessions/${encodeURIComponent(id)}`, {
     method: "DELETE",
   })
   if (!res.ok) {

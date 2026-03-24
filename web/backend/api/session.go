@@ -18,9 +18,9 @@ import (
 
 // registerSessionRoutes binds session list and detail endpoints to the ServeMux.
 func (h *Handler) registerSessionRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /api/sessions", h.handleListSessions)
-	mux.HandleFunc("GET /api/sessions/{id}", h.handleGetSession)
-	mux.HandleFunc("DELETE /api/sessions/{id}", h.handleDeleteSession)
+	mux.HandleFunc("GET /oopsclaw/sessions", h.handleListSessions)
+	mux.HandleFunc("GET /oopsclaw/sessions/{id}", h.handleGetSession)
+	mux.HandleFunc("DELETE /oopsclaw/sessions/{id}", h.handleDeleteSession)
 }
 
 // sessionFile mirrors the on-disk session JSON structure from pkg/session.
@@ -276,7 +276,7 @@ func (h *Handler) sessionsDir() (string, error) {
 
 // handleListSessions returns a list of Pico session summaries.
 //
-//	GET /api/sessions
+//	GET /oopsclaw/sessions
 func (h *Handler) handleListSessions(w http.ResponseWriter, r *http.Request) {
 	dir, err := h.sessionsDir()
 	if err != nil {
@@ -402,7 +402,7 @@ func (h *Handler) handleListSessions(w http.ResponseWriter, r *http.Request) {
 
 // handleGetSession returns the full message history for a specific session.
 //
-//	GET /api/sessions/{id}
+//	GET /oopsclaw/sessions/{id}
 func (h *Handler) handleGetSession(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.PathValue("id")
 	if sessionID == "" {
@@ -466,7 +466,7 @@ func (h *Handler) handleGetSession(w http.ResponseWriter, r *http.Request) {
 
 // handleDeleteSession deletes a specific session.
 //
-//	DELETE /api/sessions/{id}
+//	DELETE /oopsclaw/sessions/{id}
 func (h *Handler) handleDeleteSession(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.PathValue("id")
 	if sessionID == "" {

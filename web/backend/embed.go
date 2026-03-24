@@ -36,42 +36,65 @@ func registerEmbedRoutes(mux *http.ServeMux) {
 
 	fileServer := http.FileServer(http.FS(subFS))
 
-	// Serve static assets and fallback to index.html for SPA routes.
+	// serveFrontend handles static file serving and SPA fallback.
+	serveFrontend := func(w http.ResponseWriter, r *http.Request, urlPath string) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			http.NotFound(w, r)
+			return
+		}
+
+		cleanPath := path.Clean(strings.TrimPrefix(urlPath, "/"))
+		if cleanPath == "." {
+			cleanPath = ""
+		}
+
+		// Existing static files/directories should be served directly.
+		if cleanPath != "" {
+			if _, statErr := fs.Stat(subFS, cleanPath); statErr == nil {
+				// Rewrite the request path so the file server finds the file
+				rewritten := r.Clone(r.Context())
+				rewritten.URL.Path = "/" + cleanPath
+				fileServer.ServeHTTP(w, rewritten)
+				return
+			}
+			// Missing asset-like paths should remain 404.
+			if strings.Contains(path.Base(cleanPath), ".") {
+				rewritten := r.Clone(r.Context())
+				rewritten.URL.Path = "/" + cleanPath
+				fileServer.ServeHTTP(w, rewritten)
+				return
+			}
+		}
+
+		// SPA fallback: serve index.html
+		indexReq := r.Clone(r.Context())
+		indexReq.URL.Path = "/"
+		fileServer.ServeHTTP(w, indexReq)
+	}
+
+	// Serve frontend under /oopsclaw/ prefix (for nginx reverse proxy).
+	mux.Handle(
+		"/oopsclaw/",
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Strip the /oopsclaw prefix to get the actual resource path
+			stripped := strings.TrimPrefix(r.URL.Path, "/oopsclaw")
+			if stripped == "" {
+				stripped = "/"
+			}
+			serveFrontend(w, r, stripped)
+		}),
+	)
+
+	// Also serve frontend at root / for direct access (localhost:18800).
 	mux.Handle(
 		"/",
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Method != http.MethodGet && r.Method != http.MethodHead {
-				http.NotFound(w, r)
+			// Redirect root to /oopsclaw/ for consistency
+			if r.URL.Path == "/" {
+				http.Redirect(w, r, "/oopsclaw/", http.StatusFound)
 				return
 			}
-
-			// Keep unknown API paths as 404 instead of falling back to SPA entry.
-			if r.URL.Path == "/api" || strings.HasPrefix(r.URL.Path, "/api/") {
-				http.NotFound(w, r)
-				return
-			}
-
-			cleanPath := path.Clean(strings.TrimPrefix(r.URL.Path, "/"))
-			if cleanPath == "." {
-				cleanPath = ""
-			}
-
-			// Existing static files/directories should be served directly.
-			if cleanPath != "" {
-				if _, statErr := fs.Stat(subFS, cleanPath); statErr == nil {
-					fileServer.ServeHTTP(w, r)
-					return
-				}
-				// Missing asset-like paths should remain 404.
-				if strings.Contains(path.Base(cleanPath), ".") {
-					fileServer.ServeHTTP(w, r)
-					return
-				}
-			}
-
-			indexReq := r.Clone(r.Context())
-			indexReq.URL.Path = "/"
-			fileServer.ServeHTTP(w, indexReq)
+			serveFrontend(w, r, r.URL.Path)
 		}),
 	)
 }

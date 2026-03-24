@@ -50,13 +50,13 @@ var gatewayHealthGet = func(url string, timeout time.Duration) (*http.Response, 
 
 // registerGatewayRoutes binds gateway lifecycle endpoints to the ServeMux.
 func (h *Handler) registerGatewayRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /api/gateway/status", h.handleGatewayStatus)
-	mux.HandleFunc("GET /api/gateway/events", h.handleGatewayEvents)
-	mux.HandleFunc("GET /api/gateway/logs", h.handleGatewayLogs)
-	mux.HandleFunc("POST /api/gateway/logs/clear", h.handleGatewayClearLogs)
-	mux.HandleFunc("POST /api/gateway/start", h.handleGatewayStart)
-	mux.HandleFunc("POST /api/gateway/stop", h.handleGatewayStop)
-	mux.HandleFunc("POST /api/gateway/restart", h.handleGatewayRestart)
+	mux.HandleFunc("GET /oopsclaw/gateway/status", h.handleGatewayStatus)
+	mux.HandleFunc("GET /oopsclaw/gateway/events", h.handleGatewayEvents)
+	mux.HandleFunc("GET /oopsclaw/gateway/logs", h.handleGatewayLogs)
+	mux.HandleFunc("POST /oopsclaw/gateway/logs/clear", h.handleGatewayClearLogs)
+	mux.HandleFunc("POST /oopsclaw/gateway/start", h.handleGatewayStart)
+	mux.HandleFunc("POST /oopsclaw/gateway/stop", h.handleGatewayStop)
+	mux.HandleFunc("POST /oopsclaw/gateway/restart", h.handleGatewayRestart)
 }
 
 // TryAutoStartGateway checks whether gateway start preconditions are met and
