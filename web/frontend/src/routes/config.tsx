@@ -11,7 +11,7 @@ function ConfigRouteLayout() {
     select: (state) => state.location.pathname,
   })
 
-  if (pathname === "/config") {
+  if (pathname === "/config" || pathname === "/oopsclaw/config") {
     return <ConfigPage />
   }
 

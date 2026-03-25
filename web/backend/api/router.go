@@ -14,9 +14,16 @@ type Handler struct {
 	serverPublic         bool
 	serverPublicExplicit bool
 	serverCIDRs          []string
+	spaFallback          http.Handler
 	oauthMu              sync.Mutex
 	oauthFlows           map[string]*oauthFlow
 	oauthState           map[string]string
+}
+
+// SetSPAFallback sets the handler used to serve the SPA index.html when an API
+// route conflicts with a frontend page route (e.g. GET /oopsclaw/config).
+func (h *Handler) SetSPAFallback(handler http.Handler) {
+	h.spaFallback = handler
 }
 
 // NewHandler creates an instance of the API handler.

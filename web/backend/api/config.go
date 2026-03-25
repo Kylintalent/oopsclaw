@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/sipeed/picoclaw/pkg/config"
 )
@@ -17,9 +18,22 @@ func (h *Handler) registerConfigRoutes(mux *http.ServeMux) {
 }
 
 // handleGetConfig returns the complete system configuration.
+// When a browser navigates to /oopsclaw/config (Accept: text/html), this route
+// conflicts with the SPA page route. In that case, serve the SPA index.html
+// instead of JSON so the frontend router can handle the page.
 //
 //	GET /oopsclaw/config
 func (h *Handler) handleGetConfig(w http.ResponseWriter, r *http.Request) {
+	// Browser navigation sends Accept containing "text/html".
+	// API calls from the frontend use "application/json" or fetch defaults.
+	accept := r.Header.Get("Accept")
+	if strings.Contains(accept, "text/html") && !strings.Contains(accept, "application/json") {
+		if h.spaFallback != nil {
+			h.spaFallback.ServeHTTP(w, r)
+			return
+		}
+	}
+
 	cfg, err := config.LoadConfig(h.configPath)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to load config: %v", err), http.StatusInternalServerError)

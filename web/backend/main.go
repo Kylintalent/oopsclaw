@@ -120,6 +120,12 @@ func main() {
 	// Frontend Embedded Assets
 	registerEmbedRoutes(mux)
 
+	// Wire up SPA fallback so API handlers can serve index.html for browser
+	// navigation to paths that conflict with API routes (e.g. /oopsclaw/config).
+	if SPAFallback != nil {
+		apiHandler.SetSPAFallback(SPAFallback)
+	}
+
 	accessControlledMux, err := middleware.IPAllowlist(launcherCfg.AllowedCIDRs, mux)
 	if err != nil {
 		log.Fatalf("Invalid allowed CIDR configuration: %v", err)

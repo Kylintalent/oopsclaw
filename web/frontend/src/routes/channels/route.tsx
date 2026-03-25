@@ -14,7 +14,7 @@ function ChannelsLayout() {
     select: (state) => state.location.pathname,
   })
 
-  if (pathname === "/channels") {
+  if (pathname === "/channels" || pathname === "/oopsclaw/channels") {
     return <Navigate to="/channels/$name" params={{ name: "dingtalk" }} />
   }
 

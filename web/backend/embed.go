@@ -13,6 +13,11 @@ import (
 //go:embed all:dist
 var frontendFS embed.FS
 
+// SPAFallback is a package-level handler function that serves the SPA index.html.
+// It is set during registerEmbedRoutes and can be used by API handlers to serve
+// the frontend when a browser requests an API path that conflicts with a SPA route.
+var SPAFallback http.HandlerFunc
+
 // registerEmbedRoutes sets up the HTTP handler to serve the embedded frontend files
 func registerEmbedRoutes(mux *http.ServeMux) {
 	// Register correct MIME type for SVG files
@@ -67,6 +72,14 @@ func registerEmbedRoutes(mux *http.ServeMux) {
 		}
 
 		// SPA fallback: serve index.html
+		indexReq := r.Clone(r.Context())
+		indexReq.URL.Path = "/"
+		fileServer.ServeHTTP(w, indexReq)
+	}
+
+	// Set the package-level SPAFallback so API handlers can serve index.html
+	// when a browser navigates to a path that conflicts with an API route.
+	SPAFallback = func(w http.ResponseWriter, r *http.Request) {
 		indexReq := r.Clone(r.Context())
 		indexReq.URL.Path = "/"
 		fileServer.ServeHTTP(w, indexReq)

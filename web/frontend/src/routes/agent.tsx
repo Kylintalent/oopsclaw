@@ -14,7 +14,7 @@ function AgentLayout() {
     select: (state) => state.location.pathname,
   })
 
-  if (pathname === "/agent") {
+  if (pathname === "/agent" || pathname === "/oopsclaw/agent") {
     return <Navigate to="/agent/skills" />
   }
 
