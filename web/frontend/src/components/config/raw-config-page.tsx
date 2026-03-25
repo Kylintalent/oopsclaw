@@ -27,7 +27,7 @@ export function RawConfigPage() {
   const { data: config, isLoading } = useQuery({
     queryKey: ["config"],
     queryFn: async () => {
-      const res = await fetch("/api/config")
+      const res = await fetch("/oopsclaw/config")
       if (!res.ok) {
         throw new Error("Failed to fetch config")
       }
@@ -37,7 +37,7 @@ export function RawConfigPage() {
 
   const mutation = useMutation({
     mutationFn: async (newConfig: string) => {
-      const res = await fetch("/api/config", {
+      const res = await fetch("/oopsclaw/config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: newConfig,
