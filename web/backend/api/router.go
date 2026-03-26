@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/sipeed/picoclaw/pkg/cron"
 	"github.com/sipeed/picoclaw/web/backend/launcherconfig"
 )
 
@@ -18,6 +19,7 @@ type Handler struct {
 	oauthMu              sync.Mutex
 	oauthFlows           map[string]*oauthFlow
 	oauthState           map[string]string
+	cronSvc              *cron.CronService
 }
 
 // SetSPAFallback sets the handler used to serve the SPA index.html when an API
@@ -71,9 +73,15 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	h.registerSkillRoutes(mux)
 	h.registerToolRoutes(mux)
 
+	// MCP server management
+	h.registerMCPRoutes(mux)
+
 	// OS startup / launch-at-login
 	h.registerStartupRoutes(mux)
 
 	// Launcher service parameters (port/public)
 	h.registerLauncherConfigRoutes(mux)
+
+	// Cron job management
+	h.registerCronRoutes(mux)
 }

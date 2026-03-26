@@ -3,9 +3,11 @@ import {
   IconAtom,
   IconChevronsDown,
   IconChevronsUp,
+  IconClock,
   IconKey,
   IconListDetails,
   IconMessageCircle,
+  IconPlug,
   IconSettings,
   IconSparkles,
   IconTools,
@@ -132,11 +134,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             icon: IconTools,
             translateTitle: true,
           },
+          {
+            title: "MCP",
+            url: "/agent/mcp",
+            icon: IconPlug,
+            translateTitle: false,
+          },
         ],
       },
       {
         ...baseNavGroups[3],
         items: [
+          {
+            title: "定时任务",
+            url: "/cron",
+            icon: IconClock,
+            translateTitle: false,
+          },
           {
             title: "navigation.config",
             url: "/config",

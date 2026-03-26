@@ -26,7 +26,27 @@ case "$ARCH" in
   armv7l)    ARCH="arm" ; export GOARM=7 ;;
 esac
 
-VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+# ── 版本号自增管理 ──────────────────────────────────────────────────────────
+# 构建号存储在 build/.build_number 中，每次打包自动 +1
+# 最终版本格式: v0.2.3-build.42  (基础版本取自最近的 git tag)
+BUILD_NUMBER_FILE="${PROJECT_ROOT}/build/.build_number"
+mkdir -p "${PROJECT_ROOT}/build"
+
+# 读取上次构建号，不存在则从 0 开始
+if [ -f "$BUILD_NUMBER_FILE" ]; then
+  LAST_BUILD=$(cat "$BUILD_NUMBER_FILE")
+else
+  LAST_BUILD=0
+fi
+
+# 自增
+BUILD_NUMBER=$((LAST_BUILD + 1))
+echo "$BUILD_NUMBER" > "$BUILD_NUMBER_FILE"
+
+# 基础版本取自最近的 git tag（不含 commit 后缀）
+BASE_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+VERSION="${BASE_VERSION}-build.${BUILD_NUMBER}"
+
 GIT_COMMIT=$(git rev-parse --short=8 HEAD 2>/dev/null || echo "dev")
 BUILD_TIME=$(date +%FT%T%z)
 GO_VERSION=$(go version | awk '{print $3}')

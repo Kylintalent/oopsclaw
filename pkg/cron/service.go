@@ -66,6 +66,7 @@ type CronService struct {
 	running   bool
 	stopChan  chan struct{}
 	gronx     *gronx.Gronx
+	history   *HistoryService
 }
 
 func NewCronService(storePath string, onJob JobHandler) *CronService {
@@ -73,10 +74,30 @@ func NewCronService(storePath string, onJob JobHandler) *CronService {
 		storePath: storePath,
 		onJob:     onJob,
 		gronx:     gronx.New(),
+		history:   NewHistoryService(storePath, 200),
 	}
 	// Initialize and load store on creation
 	cs.loadStore()
 	return cs
+}
+
+// History returns the execution history service.
+func (cs *CronService) History() *HistoryService {
+	return cs.history
+}
+
+// GetJob returns a single job by ID, or nil if not found.
+func (cs *CronService) GetJob(jobID string) *CronJob {
+	cs.mu.RLock()
+	defer cs.mu.RUnlock()
+
+	for i := range cs.store.Jobs {
+		if cs.store.Jobs[i].ID == jobID {
+			jobCopy := cs.store.Jobs[i]
+			return &jobCopy
+		}
+	}
+	return nil
 }
 
 func (cs *CronService) Start() error {
@@ -140,6 +161,11 @@ func (cs *CronService) checkJobs() {
 		return
 	}
 
+	// Reload from disk to pick up external changes (e.g. deletions from the web UI)
+	if err := cs.loadStore(); err != nil {
+		log.Printf("[cron] failed to reload store: %v", err)
+	}
+
 	now := time.Now().UnixMilli()
 	var dueJobIDs []string
 
@@ -151,19 +177,22 @@ func (cs *CronService) checkJobs() {
 		}
 	}
 
-	// Reset next run for due jobs before unlocking to avoid duplicate execution.
-	dueMap := make(map[string]bool, len(dueJobIDs))
-	for _, jobID := range dueJobIDs {
-		dueMap[jobID] = true
-	}
-	for i := range cs.store.Jobs {
-		if dueMap[cs.store.Jobs[i].ID] {
-			cs.store.Jobs[i].State.NextRunAtMS = nil
+	// Only save if there are due jobs whose state needs updating
+	if len(dueJobIDs) > 0 {
+		// Reset next run for due jobs before unlocking to avoid duplicate execution.
+		dueMap := make(map[string]bool, len(dueJobIDs))
+		for _, jobID := range dueJobIDs {
+			dueMap[jobID] = true
 		}
-	}
+		for i := range cs.store.Jobs {
+			if dueMap[cs.store.Jobs[i].ID] {
+				cs.store.Jobs[i].State.NextRunAtMS = nil
+			}
+		}
 
-	if err := cs.saveStoreUnsafe(); err != nil {
-		log.Printf("[cron] failed to save store: %v", err)
+		if err := cs.saveStoreUnsafe(); err != nil {
+			log.Printf("[cron] failed to save store: %v", err)
+		}
 	}
 
 	cs.mu.Unlock()
@@ -224,13 +253,31 @@ func (cs *CronService) executeJobByID(jobID string) {
 	job.State.LastRunAtMS = &startTime
 	job.UpdatedAtMS = time.Now().UnixMilli()
 
+	// Build execution record for history
+	record := ExecutionRecord{
+		ID:         generateID(),
+		JobID:      jobID,
+		JobName:    callbackJob.Name,
+		StartAtMS:  startTime,
+		EndAtMS:    time.Now().UnixMilli(),
+		DurationMS: execDuration,
+	}
+
 	if err != nil {
 		job.State.LastStatus = "error"
 		job.State.LastError = err.Error()
+		record.Status = "error"
+		record.Error = err.Error()
 		log.Printf("[cron] ✗ job '%s' failed after %dms: %v", job.Name, execDuration, err)
 	} else {
 		job.State.LastStatus = "ok"
 		job.State.LastError = ""
+		record.Status = "ok"
+	}
+
+	// Persist execution record outside the critical section
+	if cs.history != nil {
+		cs.history.AddRecord(record)
 	}
 
 	// Compute next run time
